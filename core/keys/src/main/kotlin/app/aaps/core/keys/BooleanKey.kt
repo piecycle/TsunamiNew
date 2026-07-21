@@ -251,4 +251,10 @@ enum class BooleanKey(
     SiteRotationManagePump("site_rotation_manage_pump", defaultValue = false, titleResId = R.string.pref_title_site_rotation_manage_pump, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
     SiteRotationManageCgm("site_rotation_manage_cgm", defaultValue = false, titleResId = R.string.pref_title_site_rotation_manage_cgm, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
 
+    //Tsunami
+    TsuSMBscaling(key = "key_tsu_SMB_scaling", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt),
+    EnableWave(key = "key_enable_wave_mode", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt),
+    WaveUseSMBCap(key = "key_use_wave_smbcap", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = EnableWave),
+    HideTsunamiButton(key = "key_hide_tsunami_button", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = EnableWave),
+    WaveSMBCapScaling(key = "key_wave_SMB_scaling", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = WaveUseSMBCap),
 }

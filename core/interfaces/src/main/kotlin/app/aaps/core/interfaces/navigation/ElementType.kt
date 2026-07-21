@@ -108,6 +108,8 @@ enum class ElementType(
     LOOP,
     AAPS,
 
+    TSUNAMI(category = ElementCategory.TREATMENT, searchable = true, protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT),
+
     // App lifecycle
     EXIT;
 

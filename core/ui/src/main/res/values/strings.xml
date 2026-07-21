@@ -1145,5 +1145,16 @@
     <string name="variable_sensitivity_shortname" comment="Short label for Variable Sensitivity graph series">VSENS</string>
     <string name="steps_shortname" comment="Short label for Steps graph series">STEPS</string>
 
-
+    <!-- Tsunami -->
+    <string name="tsunami">Tsunami</string>
+    <string name="overview_tsunami_label">Tsunami</string>
+    <string name="tsunami_desc">Start Tsunami mode.</string>
+    <string name="tsunami_shortname">TSU</string>
+    <string name="tsunami_duration">Tsunami duration</string>
+    <string name="cancel_tsunami">Cancel Tsunami mode.</string>
+    <!-- Tsunami (for TranslatorImpl.kt) -->
+    <string name="uel_tsunami">TSUNAMI</string>
+    <string name="uel_tsunami_bolus">TSUNAMI+BOLUS</string>
+    <string name="uel_cancel_tsunami">CANCEL TSUNAMI</string>
+    <string name="uel_cancel_tsunami_bolus">CANCEL TSUNAMI+BOLUS</string>
 </resources>

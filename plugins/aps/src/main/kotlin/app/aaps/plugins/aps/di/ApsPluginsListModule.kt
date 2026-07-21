@@ -8,6 +8,7 @@ import app.aaps.plugins.aps.loop.LoopPlugin
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSAutoISF.OpenAPSAutoISFPlugin
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
+import app.aaps.plugins.aps.tsunami.TsunamiPlugin
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -55,4 +56,10 @@ abstract class ApsPluginsListModule {
     @IntoMap
     @IntKey(240)
     abstract fun bindAutotunePlugin(plugin: AutotunePlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(245)
+    abstract fun bindTsunamiPlugin(plugin: TsunamiPlugin): PluginBase
 }

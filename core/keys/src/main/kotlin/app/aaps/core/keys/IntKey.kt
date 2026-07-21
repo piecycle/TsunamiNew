@@ -451,4 +451,11 @@ enum class IntKey(
         ),
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+
+    //Tsunami
+    TsuDefaultDuration("key_tsunami_default_duration", 0, 0, 300, titleResId = R.string.tsunami_default_duration_title, defaultedBySM = true),
+    TsuActivityTarget("key_tsu_activity_target", 75, 50, 100, titleResId = R.string.tsu_activity_target_title, defaultedBySM = true),
+    TsuInsReqPCT("key_insulinReqPCT", 65, 50, 100, titleResId = R.string.insulinReqPCT_title, defaultedBySM = true),
+    WaveActivityTarget("key_wave_activity_target", 70, 50, 100, titleResId = R.string.wave_activity_target_title, defaultedBySM = true, dependency = BooleanKey.EnableWave),
+    WaveInsReqPCT("key_wave_insulinReqPCT", 65, 30, 100, titleResId = R.string.wave_insulinReqPCT_title, defaultedBySM = true, dependency = BooleanKey.EnableWave),
 }
