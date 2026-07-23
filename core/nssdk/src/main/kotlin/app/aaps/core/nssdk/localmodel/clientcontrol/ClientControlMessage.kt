@@ -263,5 +263,9 @@ data class BatchActionDto(
         // therapy_event_edit: the master UPDATES an existing TherapyEvent it locates by teType+timestamp (reuses the
         // teType/timestamp/location/arrow/notes/source fields). Distinct from create so it never insert-if-news.
         const val TYPE_THERAPY_EVENT_EDIT = "therapy_event_edit"
+
+        const val TYPE_TSUNAMI = "tsunami"
+
+        const val TYPE_CANCEL_TSUNAMI = "cancel_tsunami"
     }
 }

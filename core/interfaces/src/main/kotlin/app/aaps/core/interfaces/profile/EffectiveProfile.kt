@@ -30,4 +30,5 @@ interface EffectiveProfile : Profile {
      * @See [app.aaps.core.interfaces.pump.PumpInsulin]
      */
     fun insulinConcentration(): Double = iCfg.concentration
+
 }

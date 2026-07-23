@@ -116,6 +116,11 @@
     <string name="ultra_fast_acting_insulin_comment">Fiasp</string>
     <string name="insulin_peak_time">Peak Time [min]</string>
 
+    <!-- Tsunami PD models -->
+    <string name="lyumjev_U100_PD">Lyumjev (PD)</string>
+    <string name="insulin_peak_time_PD">Dose-dependent Peak Time [min]</string>
+    <!-- Tsunami PD models end -->
+
     <!-- Concentration -->
     <string name="u10">U10</string>
     <string name="u40">U40</string>

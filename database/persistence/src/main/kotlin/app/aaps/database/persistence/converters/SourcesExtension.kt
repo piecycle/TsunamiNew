@@ -88,6 +88,7 @@ fun UserEntry.Sources.fromDb(): Sources =
         UserEntry.Sources.Scene               -> Sources.Scene
         UserEntry.Sources.Database            -> Sources.Database
         UserEntry.Sources.Unknown             -> Sources.Unknown
+        UserEntry.Sources.TsunamiDialog       -> Sources.TsunamiDialog
     }
 
 fun Sources.toDb(): UserEntry.Sources =
@@ -175,5 +176,6 @@ fun Sources.toDb(): UserEntry.Sources =
         Sources.Database            -> UserEntry.Sources.Database
         Sources.Insulin             -> UserEntry.Sources.Insulin
         Sources.Unknown             -> UserEntry.Sources.Unknown
+        Sources.TsunamiDialog       -> UserEntry.Sources.TsunamiDialog
     }
 

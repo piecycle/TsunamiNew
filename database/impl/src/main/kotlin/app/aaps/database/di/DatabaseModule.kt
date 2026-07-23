@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase.Callback
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import app.aaps.database.AppDatabase
@@ -318,7 +319,21 @@ open class DatabaseModule {
         }
     }
 
+    //MP Tsunami database migration
+    private val migration35to36 = object : Migration(35, 36) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("CREATE TABLE IF NOT EXISTS `tsunami` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `tsunamiMode` INTEGER NOT NULL, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, FOREIGN KEY(`referenceId`) REFERENCES `tsunami`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tsunami_id` ON `tsunami` (`id`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tsunami_isValid` ON `tsunami` (`isValid`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tsunami_nightscoutId` ON `tsunami` (`nightscoutId`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tsunami_referenceId` ON `tsunami` (`referenceId`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_tsunami_timestamp` ON `tsunami` (`timestamp`)")
+            // Custom indexes must be dropped on migration to pass room schema checking after upgrade
+            dropCustomIndexes(connection)
+        }
+    }
+
     /** List of all migrations for easy reply in tests. */
     @VisibleForTesting
-    internal val migrations = arrayOf(migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29, migration29to30, migration30to31, migration31to32, migration32to33, migration33to34, migration34to35)
+    internal val migrations = arrayOf(migration22to23, migration23to24, migration24to25, migration25to26, migration26to27, migration27to28, migration28to29, migration29to30, migration30to31, migration31to32, migration32to33, migration33to34, migration34to35, migration35to36)
 }

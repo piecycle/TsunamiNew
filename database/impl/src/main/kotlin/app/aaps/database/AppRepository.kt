@@ -21,6 +21,7 @@ import app.aaps.database.entities.TemporaryBasal
 import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.TherapyEvent
 import app.aaps.database.entities.TotalDailyDose
+import app.aaps.database.entities.Tsunami
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.entities.data.NewEntries
 import app.aaps.database.entities.embedments.InterfaceIDs
@@ -200,6 +201,7 @@ class AppRepository @Inject internal constructor(
             removed.add(Pair("RunningMode", database.runningModeDao.deleteOlderThan(than)))
         removed.add(Pair("HeartRate", database.heartRateDao.deleteOlderThan(than)))
         removed.add(Pair("StepsCount", database.stepsCountDao.deleteOlderThan(than)))
+        removed.add(Pair("Tsunami", database.tsunamiDao.deleteOlderThan(than)))
 
         if (deleteTrackedChanges) {
             removed.add(Pair("CHANGES APSResult", database.apsResultDao.deleteTrackedChanges()))
@@ -219,6 +221,7 @@ class AppRepository @Inject internal constructor(
             removed.add(Pair("CHANGES RunningMode", database.runningModeDao.deleteTrackedChanges()))
             removed.add(Pair("CHANGES HeartRate", database.heartRateDao.deleteTrackedChanges()))
             removed.add(Pair("CHANGES StepsCount", database.stepsCountDao.deleteTrackedChanges()))
+            removed.add(Pair("Tsunami", database.tsunamiDao.deleteTrackedChanges()))
         }
         repositoryScope.launch { _databaseClearedFlow.emit(Unit) }
         val ret = StringBuilder()
@@ -899,7 +902,34 @@ class AppRepository @Inject internal constructor(
         versionChanges = database.versionChangeDao.getNewEntriesSince(since, until, limit, offset),
         heartRates = database.heartRateDao.getNewEntriesSince(since, until, limit, offset),
         stepsCount = database.stepsCountDao.getNewEntriesSince(since, until, limit, offset),
+        tsunami = database.tsunamiDao.getNewEntriesSince(since, until, limit, offset),
     )
+    // Tsunami
+    suspend fun getTsunamiMode(): Tsunami? =
+        database.tsunamiDao.getTsunamiMode()
+
+    suspend fun getTsunamiActiveAt(timestamp: Long): Tsunami? =
+        database.tsunamiDao.getTsunamiActiveAt(timestamp)
+
+    suspend fun getTsunamiDataFromTime(timestamp: Long, ascending: Boolean = true): List<Tsunami> =
+        database.tsunamiDao.getTsunamiDataFromTime(timestamp).reversedIf(!ascending)
+
+    suspend fun getTsunamiDataIncludingInvalidFromTime(timestamp: Long, ascending: Boolean = true): List<Tsunami> =
+        database.tsunamiDao.getTsunamiDataIncludingInvalidFromTime(timestamp).reversedIf(!ascending)
+
+    suspend fun getLastTsunamiId(): Long? =
+        database.tsunamiDao.getLastId()
+
+    suspend fun getNextSyncElementTsunami(id: Long): Pair<Tsunami, Tsunami>? {
+        val nextIdElement = database.tsunamiDao.getNextModifiedOrNewAfter(id) ?: return null
+        val nextIdElemReferenceId = nextIdElement.referenceId
+        return if (nextIdElemReferenceId == null) {
+            nextIdElement to nextIdElement
+        } else {
+            val historic = database.tsunamiDao.getCurrentFromHistoric(nextIdElemReferenceId)
+            historic?.let { it to nextIdElement }
+        }
+    }
 
     suspend fun getApsResultCloseTo(timestamp: Long): APSResult? =
         database.apsResultDao.getApsResult(timestamp - 5 * 60 * 1000, timestamp)

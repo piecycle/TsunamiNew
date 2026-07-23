@@ -1134,6 +1134,7 @@ class ComposeMainActivity : AppCompatActivity() {
             ElementType.BOLUS_WIZARD            -> navController.navigate(AppRoute.WizardDialog.createRoute())
             ElementType.TEMP_BASAL              -> navController.navigate(AppRoute.TempBasalDialog.route)
             ElementType.EXTENDED_BOLUS          -> navController.navigate(AppRoute.ExtendedBolusDialog.route)
+            ElementType.TSUNAMI                 -> navController.navigate(AppRoute.TsunamiDialog.route)
 
             // CGM
             ElementType.CGM_XDRIP               -> openCgmApp("com.eveningoutpost.dexdrip")

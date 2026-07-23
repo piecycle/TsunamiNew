@@ -22,6 +22,7 @@ import app.aaps.database.daos.TemporaryBasalDao
 import app.aaps.database.daos.TemporaryTargetDao
 import app.aaps.database.daos.TherapyEventDao
 import app.aaps.database.daos.TotalDailyDoseDao
+import app.aaps.database.daos.TsunamiDao
 import app.aaps.database.daos.UserEntryDao
 import app.aaps.database.daos.VersionChangeDao
 import app.aaps.database.entities.Bolus
@@ -42,10 +43,11 @@ import app.aaps.database.entities.TemporaryBasal
 import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.TherapyEvent
 import app.aaps.database.entities.TotalDailyDose
+import app.aaps.database.entities.Tsunami
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.entities.VersionChange
 
-const val DATABASE_VERSION = 35
+const val DATABASE_VERSION = 36
 
 @Database(
     version = DATABASE_VERSION,
@@ -54,7 +56,7 @@ const val DATABASE_VERSION = 35
         TemporaryBasal::class, TemporaryTarget::class, TherapyEvent::class, TotalDailyDose::class,
         PreferenceChange::class, VersionChange::class, UserEntry::class,
         Food::class, DeviceStatus::class, RunningMode::class, HeartRate::class, StepsCount::class,
-        CalibrationEntry::class],
+        CalibrationEntry::class, Tsunami::class],
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -101,4 +103,6 @@ internal abstract class AppDatabase : RoomDatabase() {
     abstract val stepsCountDao: StepsCountDao
 
     abstract val calibrationEntryDao: CalibrationEntryDao
+
+    abstract val tsunamiDao: TsunamiDao
 }

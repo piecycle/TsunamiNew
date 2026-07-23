@@ -103,6 +103,10 @@ enum class Action(val colorGroup: ColorGroup) {
     SCENE_ACTIVATED(ColorGroup.Aaps),
     SCENE_DEACTIVATED(ColorGroup.Aaps),
     REMOTE_CONFIG_CHANGED(ColorGroup.Aaps),
+    TSUNAMI (ColorGroup.Tsunami),
+    CANCEL_TSUNAMI (ColorGroup.Tsunami),
+    CANCEL_TSUNAMI_BOLUS (ColorGroup.Tsunami),
+    TSUNAMI_BOLUS (ColorGroup.Tsunami),
     UNKNOWN(ColorGroup.Aaps)
     ;
 
@@ -121,6 +125,7 @@ enum class Action(val colorGroup: ColorGroup) {
         Careportal,
         Pump,
         Aaps,
+        Tsunami,
         RunningMode
     }
 }

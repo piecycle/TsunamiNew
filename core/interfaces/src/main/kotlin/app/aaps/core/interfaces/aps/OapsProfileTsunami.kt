@@ -1,5 +1,6 @@
 package app.aaps.core.interfaces.aps
 
+import app.aaps.core.data.ue.ValueWithUnit
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -52,7 +53,8 @@ data class OapsProfileTsunami(
     var tsunamiModeID: Int,
     val tsunamiModeActivationTime: Long?,
     var peakTime: Double,
-    var insulinID: String,
+    var PDmodel: Boolean,
+    var insConc: Double,
     var percentage: Int,
     var enableWaveMode: Boolean,
     var waveStart: Double,

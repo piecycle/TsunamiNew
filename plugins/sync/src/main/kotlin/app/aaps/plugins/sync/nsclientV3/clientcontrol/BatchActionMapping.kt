@@ -64,6 +64,14 @@ internal fun BatchAction.toDto(): BatchActionDto = when (this) {
         type = BatchActionDto.TYPE_THERAPY_EVENT_EDIT,
         teType = teType.name, timestamp = timestamp, notes = note ?: "", location = location?.name, arrow = arrow?.name, source = source.name
     )
+
+    is BatchAction.Tsunami              -> BatchActionDto(
+        type = BatchActionDto.TYPE_TSUNAMI,
+        durationMinutes = durationMinutes,
+        notes = notes ?: ""
+    )
+
+    is BatchAction.CancelTsunami        -> BatchActionDto(type = BatchActionDto.TYPE_CANCEL_TSUNAMI)
 }
 
 /** Wire [BatchActionDto] → domain [BatchAction] (master receive side); null if the type is unknown. */
@@ -106,5 +114,7 @@ internal fun BatchActionDto.toDomain(): BatchAction? = when (type) {
         )
     }
 
+    BatchActionDto.TYPE_TSUNAMI               -> BatchAction.Tsunami(durationMinutes, notes.ifEmpty { null })
+    BatchActionDto.TYPE_CANCEL_TSUNAMI        -> BatchAction.CancelTsunami
     else                                      -> null
 }

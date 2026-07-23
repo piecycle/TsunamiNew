@@ -45,6 +45,7 @@ import app.aaps.core.ui.compose.icons.IcSiteRotation
 import app.aaps.core.ui.compose.icons.IcSmb
 import app.aaps.core.ui.compose.icons.IcStats
 import app.aaps.core.ui.compose.icons.IcTbrHigh
+import app.aaps.core.ui.compose.icons.IcTsunami
 import app.aaps.core.ui.compose.icons.IcTtHigh
 import app.aaps.core.ui.compose.icons.IcUserOptions
 import app.aaps.core.ui.compose.icons.IcXDrip
@@ -60,6 +61,7 @@ fun ElementType.color(): Color = when (this) {
     ElementType.INSULIN,
     ElementType.TREATMENT,
     ElementType.FILL                    -> AapsTheme.elementColors.insulin
+    ElementType.TSUNAMI                 -> AapsTheme.elementColors.tsunami
 
     ElementType.CARBS                   -> AapsTheme.elementColors.carbs
     ElementType.BOLUS_WIZARD            -> AapsTheme.elementColors.bolusWizard
@@ -132,6 +134,8 @@ fun ElementType.icon(): ImageVector = when (this) {
     ElementType.QUICK_WIZARD_MANAGEMENT -> IcQuickwizard
 
     ElementType.FOOD_MANAGEMENT         -> IcPluginFood
+
+    ElementType.TSUNAMI                 -> IcTsunami
 
     ElementType.TREATMENT               -> Icons.Default.Add
     ElementType.CGM_XDRIP               -> IcXDrip
@@ -248,6 +252,7 @@ fun ElementType.labelResId(): Int = when (this) {
     ElementType.LOOP                    -> R.string.loop
     ElementType.AAPS                    -> R.string.aaps
     ElementType.EXIT                    -> R.string.nav_exit
+    ElementType.TSUNAMI                 -> R.string.overview_tsunami_label
 }
 
 fun ElementType.descriptionResId(): Int = when (this) {
@@ -303,4 +308,5 @@ fun ElementType.descriptionResId(): Int = when (this) {
     ElementType.LOOP,
     ElementType.AAPS,
     ElementType.EXIT                    -> 0
+    ElementType.TSUNAMI                 -> R.string.tsunami_desc
 }

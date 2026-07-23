@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.insulin.Insulin
+import app.aaps.core.interfaces.insulin.InsulinType
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -52,19 +53,11 @@ import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
-import app.aaps.core.objects.extensions.put
-import app.aaps.core.objects.extensions.store
 import app.aaps.core.objects.extensions.target
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.compose.icons.IcTsunami
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.core.utils.MidnightUtils
-import app.aaps.core.utils.extensions.put
-import app.aaps.core.validators.preferences.AdaptiveDoublePreference
-import app.aaps.core.validators.preferences.AdaptiveIntPreference
-import app.aaps.core.validators.preferences.AdaptiveIntentPreference
-import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
-import app.aaps.core.validators.preferences.AdaptiveUnitPreference
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
 import app.aaps.plugins.aps.events.EventResetOpenAPSGui
@@ -73,7 +66,6 @@ import app.aaps.plugins.aps.openAPS.TddStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -415,9 +407,8 @@ open class TsunamiPlugin @Inject constructor(
         // Get peak time if using a PK insulin model
         val activityPredTimePK = insulin.iCfg.peak //MP act. pred. time for PK ins. models; target time = insulin peak time
 
-        // Get the ID of the currently used insulin preset
-        //TODO MP July 2026: Must be adapted to work with strings, not IDs
-        val insulinID = insulin.iCfg.insulinLabel
+        // Check if current insulin model is a PD model
+        val PDmodel: Boolean = insulin.iCfg.insulinLabel.contains("(PD)")
 
         // wave active hours redefinition (allowing end times < start times)
         var waveStart : Double = preferences.get(DoubleKey.WaveStart)
@@ -488,7 +479,7 @@ open class TsunamiPlugin @Inject constructor(
         var futureActivity = 0.0
         val activityPredTime: Long
         val activityPredTimePD = 65L //MP activity prediction time for pharmacodynamic model; fixed to 65 min (approx. peak time of 1 U bolus)
-        if (insulinID != 105 && insulinID != 205) { //MP if not using PD insulin models
+        if (!PDmodel) { //MP if not using PD insulin models
             activityPredTime = activityPredTimePK.toLong()
         } else { //MP if using PD insulin models
             activityPredTime = activityPredTimePD
@@ -564,7 +555,8 @@ open class TsunamiPlugin @Inject constructor(
             tsunamiModeID = tsunamiModeID,
             tsunamiModeActivationTime = tsunamiModeActivationTime,
             peakTime = activityPredTimePK.toDouble(),
-            insulinID = insulinID,
+            PDmodel = PDmodel,
+            insConc = insulin.iCfg.concentration,
             percentage = profile.value.originalPercentage,//profile.percentage,
             enableWaveMode = enableWave,
             waveStart = waveStart,
@@ -729,15 +721,15 @@ open class TsunamiPlugin @Inject constructor(
                     DoubleKey.TsuButtonIncrement2,
                     DoubleKey.TsuButtonIncrement3,
                     IntKey.TsuDefaultDuration,
-                    PreferenceSubScreenDef(
-                        key = "key_advanced_tsunami",
-                        titleResId = R.string.advanced_tsunami_title,
-                        items = listOf(
-                            //IntentKey.TsuWaveDisclaimer,
-                            IntKey.TsuActivityTarget,
-                            IntKey.TsuInsReqPCT
-                        )
-                    )
+                    // PreferenceSubScreenDef(
+                    //     key = "key_advanced_tsunami_settings",
+                    //     titleResId = R.string.advanced_tsunami_title,
+                    //     items = listOf(
+                    //         //IntentKey.TsuWaveDisclaimer,
+                    //         IntKey.TsuActivityTarget,
+                    //         IntKey.TsuInsReqPCT
+                    //     )
+                    // )
                 )
             ),
             PreferenceSubScreenDef(
@@ -751,15 +743,15 @@ open class TsunamiPlugin @Inject constructor(
                     BooleanKey.WaveUseSMBCap,
                     DoubleKey.WaveSMBCap,
                     BooleanKey.WaveSMBCapScaling,
-                    PreferenceSubScreenDef(
-                        key = "key_advanced_wave",
-                        titleResId = R.string.advanced_wave_title,
-                        items = listOf(
-                            //IntentKey.TsuWaveDisclaimer,
-                            IntKey.WaveActivityTarget,
-                            IntKey.WaveInsReqPCT
-                        )
-                    )
+                    // PreferenceSubScreenDef(
+                    //     key = "key_advanced_wave",
+                    //     titleResId = R.string.advanced_wave_title,
+                    //     items = listOf(
+                    //         //IntentKey.TsuWaveDisclaimer,
+                    //         IntKey.WaveActivityTarget,
+                    //         IntKey.WaveInsReqPCT
+                    //     )
+                    // )
                 )
             ),
             BooleanKey.ApsUseDynamicSensitivity,
@@ -793,7 +785,7 @@ open class TsunamiPlugin @Inject constructor(
         ),
         icon = pluginDescription.icon
     )
-
+/*
     // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         if (requiredKey != null &&
@@ -886,5 +878,5 @@ open class TsunamiPlugin @Inject constructor(
                 )
             })
         }
-    }
+    }*/
 }

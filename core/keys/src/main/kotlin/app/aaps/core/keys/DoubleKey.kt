@@ -311,6 +311,7 @@ enum class DoubleKey(
         3.0,
         titleResId = R.string.tsunami_smbcap_title,
         summaryResId = R.string.tsunami_smbcap_summary,
+        unitType = UnitType.INSULIN,
         defaultedBySM = true,
         calculatedBySM = true),
     TsuButtonIncrement1(
@@ -320,6 +321,7 @@ enum class DoubleKey(
         5.0,
         titleResId = R.string.tsunami_button_insulin_increment_1,
         summaryResId = R.string.tsunami_button_insulin_increment_button_message,
+        unitType = UnitType.INSULIN,
         defaultedBySM = true),
     TsuButtonIncrement2(
         "key_tsunami_button_insulin_increment_2",
@@ -328,6 +330,7 @@ enum class DoubleKey(
         5.0,
         titleResId = R.string.tsunami_button_insulin_increment_2,
         summaryResId = R.string.tsunami_button_insulin_increment_button_message,
+        unitType = UnitType.INSULIN,
         defaultedBySM = true),
     TsuButtonIncrement3(
         "key_tsunami_button_insulin_increment_3",
@@ -336,6 +339,7 @@ enum class DoubleKey(
         5.0,
         titleResId = R.string.tsunami_button_insulin_increment_3,
         summaryResId = R.string.tsunami_button_insulin_increment_button_message,
+        unitType = UnitType.INSULIN,
         defaultedBySM = true),
     WaveStart(
         "key_wave_start",
@@ -344,6 +348,7 @@ enum class DoubleKey(
         23.0,
         titleResId = R.string.wave_start_title,
         summaryResId = R.string.wave_start_summary,
+        unitType = UnitType.HOURS_DOUBLE,
         defaultedBySM = true,
         dependency = BooleanKey.EnableWave),
     WaveEnd(
@@ -353,6 +358,7 @@ enum class DoubleKey(
         23.0,
         titleResId = R.string.wave_end_title,
         summaryResId = R.string.wave_end_summary,
+        unitType = UnitType.HOURS_DOUBLE,
         defaultedBySM = true,
         dependency = BooleanKey.EnableWave),
     WaveSMBCap(
@@ -362,6 +368,7 @@ enum class DoubleKey(
         2.0,
         titleResId = R.string.wave_smbcap_title,
         summaryResId = R.string.wave_smbcap_message,
+        unitType = UnitType.INSULIN,
         defaultedBySM = true,
         dependency = BooleanKey.WaveUseSMBCap),
 }

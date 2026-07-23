@@ -140,4 +140,17 @@ sealed interface BatchAction {
         // See [TherapyEvent.source]: audit source on the sending device; a relayed edit is logged by the master.
         val source: Sources
     ) : BatchAction
+
+    /**
+     * Tsunami: start tsunami mode for [durationMinutes].
+     */
+    data class Tsunami(
+        val durationMinutes: Int,
+        val notes: String? = null
+    ) : BatchAction
+
+    /**
+     * Cancel Tsunami mode on the master's pump.
+     */
+    data object CancelTsunami : BatchAction
 }

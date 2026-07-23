@@ -724,7 +724,7 @@ class DetermineBasalTsunami @Inject constructor(
             var tp: Double
             var t: Double
 //TODO July 2026
-            if (profile.insulinID != 105 && profile.insulinID != 205) {
+            if (!profile.PDmodel) {
                 // PK BASED MODEL CODE
                 // MP Calculate the insulin required to neutralise the current delta in "peak-time" minutes
                 tp = profile.peakTime //MP Insulin peak time as stated in InsulinOrefFreePeakPlugin. Doesn't work with insulin presets. Should be same value as used for actFuture calculation (see glucoseStatus.java)
@@ -752,12 +752,7 @@ class DetermineBasalTsunami @Inject constructor(
                 if (actMissing != 0.0) {
                     while (round(actAtT / actMissing, 2) > 1.02 || round(actAtT / actMissing, 2) < 0.98) {
                         tsuInsReq = tsuInsReq / actRatio
-                        //TODO: Change this to account for new insulin concentration variable
-                        tp = if (profile.insulinID == 205) { //MP ID = 205 for Lyumjev U200
-                            (A0 + A1 * 2 * tsuInsReq) / (1 + B1 * 2 * tsuInsReq)
-                        } else { //MP Lyumjev U100 (ID = 105)
-                            (A0 + A1 * tsuInsReq) / (1 + B1 * tsuInsReq)
-                        }
+                        tp = (A0 + A1 * profile.insConc * tsuInsReq) / (1 + B1 * profile.insConc * tsuInsReq)
                         t = tp
                         tpModel = Math.pow(tp, 2.0) * 2
                         actAtT = 2 * tsuInsReq / tpModel * t * Math.exp(-Math.pow(t, 2.0) / tpModel)

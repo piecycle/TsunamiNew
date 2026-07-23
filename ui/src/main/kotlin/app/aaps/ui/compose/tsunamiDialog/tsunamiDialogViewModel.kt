@@ -39,12 +39,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.compareTo
 import kotlin.math.max
 
 @HiltViewModel
 @Stable
 class TsunamiDialogViewModel @Inject constructor(
-    private val constraintChecker: ConstraintsChecker,
+    constraintChecker: ConstraintsChecker,
     activePlugin: ActivePlugin,
     val config: Config,
     private val automation: Automation,
@@ -81,12 +82,10 @@ class TsunamiDialogViewModel @Inject constructor(
     private val maxDurationMinutes = 5 * 60.0
 
     init {
-        val now = dateUtil.now()
         val pump = activePlugin.activePump
         val constrainedMax = constraintChecker.getMaxBolusAllowed().value()
         val maxInsulin = if (constrainedMax > 0.0) constrainedMax else hardLimits.maxBolus()
         val bolusStep = pump.pumpDescription.bolusStep
-        val isTsunamiActive = persistenceLayer.getTsunamiActiveAt(now) != null
 
         _uiState.update {
             TsunamiDialogUiState(
@@ -98,11 +97,20 @@ class TsunamiDialogViewModel @Inject constructor(
                 tsunamiButtonIncrement3 = preferences.get(DoubleKey.TsuButtonIncrement3),
                 duration = preferences.get(IntKey.TsuDefaultDuration).toDouble(),
                 maxDurationMinutes = maxDurationMinutes,
-                isTsunamiActive = isTsunamiActive,
+                isTsunamiActive = false,
                 notes = "",
-                eventTime = now,
+                eventTime = dateUtil.now(),
                 showNotesFromPreferences = preferences.get(BooleanKey.OverviewShowNotesInDialogs)
             )
+        }
+
+        loadData()
+    }
+
+    private fun loadData() {
+        viewModelScope.launch {
+            val isTsunamiActive = persistenceLayer.getTsunamiActiveAt(dateUtil.now()) != null
+            _uiState.update { it.copy(isTsunamiActive = isTsunamiActive) }
         }
     }
 
@@ -177,7 +185,7 @@ class TsunamiDialogViewModel @Inject constructor(
             confirmedState = state
             pendingIsCancelOnly = true
             val actions = listOf(
-                BatchAction.CancelTsunami(notes = state.notes)
+                BatchAction.CancelTsunami
             )
             when (val prepared = batchExecutor.prepare(actions, Sources.TsunamiDialog, rh.gs(app.aaps.core.ui.R.string.tsunami))) {
                 is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, prepared.lines))
@@ -233,7 +241,7 @@ class TsunamiDialogViewModel @Inject constructor(
         if (duration > 0) {
             add(BatchAction.Tsunami(durationMinutes = duration, notes = state.notes))
         } else if (duration == 0 && state.isTsunamiActive) {
-            add(BatchAction.CancelTsunami(notes = state.notes))
+            add(BatchAction.CancelTsunami)
         }
     }
 }

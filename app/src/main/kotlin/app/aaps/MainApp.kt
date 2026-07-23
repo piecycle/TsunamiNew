@@ -708,6 +708,7 @@ class MainApp : Application(), HasAndroidInjector, Configuration.Provider {
                 sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefUltraRapidActingPlugin", false) -> InsulinType.OREF_ULTRA_RAPID_ACTING.label
                 sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefFreePeakPlugin", false)         -> InsulinType.OREF_FREE_PEAK.label
                 sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinLyumjevPlugin", false)              -> InsulinType.OREF_LYUMJEV.label
+                sp.getBoolean("ConfigBuilder_Enabled_INSULIN_PDInsulinLyumjevPlugin", false)            -> InsulinType.PD_LYUMJEV.label
                 else                                                                                    -> InsulinType.OREF_RAPID_ACTING.label
             }
         )
@@ -716,13 +717,15 @@ class MainApp : Application(), HasAndroidInjector, Configuration.Provider {
             sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefUltraRapidActingPlugin", false) -> InsulinType.OREF_ULTRA_RAPID_ACTING.insulinPeakTime
             sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefFreePeakPlugin", false)         -> (sp.getInt("insulin_oref_peak", 75) * 60 * 1000).toLong()
             sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinLyumjevPlugin", false)              -> InsulinType.OREF_LYUMJEV.insulinPeakTime
+            sp.getBoolean("ConfigBuilder_Enabled_INSULIN_PDInsulinLyumjevPlugin", false)              -> InsulinType.PD_LYUMJEV.insulinPeakTime
             else                                                                                    -> InsulinType.OREF_RAPID_ACTING.insulinPeakTime
         }
         // Migrate Insulin Plugins
         if (sp.getBoolean("ConfigBuilder_INSULIN_InsulinOrefRapidActingPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefRapidActingPlugin", false) ||
             sp.getBoolean("ConfigBuilder_INSULIN_InsulinOrefUltraRapidActingPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefUltraRapidActingPlugin", false) ||
             sp.getBoolean("ConfigBuilder_INSULIN_InsulinOrefFreePeakPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinOrefFreePeakPlugin", false) ||
-            sp.getBoolean("ConfigBuilder_INSULIN_InsulinLyumjevPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinLyumjevPlugin", false)
+            sp.getBoolean("ConfigBuilder_INSULIN_InsulinLyumjevPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_InsulinLyumjevPlugin", false) ||
+            sp.getBoolean("ConfigBuilder_INSULIN_PDInsulinLyumjevPlugin_Enabled", false) || sp.getBoolean("ConfigBuilder_Enabled_INSULIN_PDInsulinLyumjevPlugin", false)
         ) {
             sp.remove("ConfigBuilder_INSULIN_InsulinOrefRapidActingPlugin_Enabled")
             sp.remove("ConfigBuilder_INSULIN_InsulinOrefRapidActingPlugin_Visible")
@@ -736,6 +739,9 @@ class MainApp : Application(), HasAndroidInjector, Configuration.Provider {
             sp.remove("ConfigBuilder_INSULIN_InsulinLyumjevPlugin_Enabled")
             sp.remove("ConfigBuilder_INSULIN_InsulinLyumjevPlugin_Visible")
             sp.remove("ConfigBuilder_Enabled_INSULIN_InsulinLyumjevPlugin")
+            sp.remove("ConfigBuilder_INSULIN_PDInsulinLyumjevPlugin_Enabled")
+            sp.remove("ConfigBuilder_INSULIN_PDInsulinLyumjevPlugin_Visible")
+            sp.remove("ConfigBuilder_Enabled_PDINSULIN_InsulinLyumjevPlugin")
             sp.remove("insulin_oref_peak")
         }
     }

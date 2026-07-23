@@ -286,6 +286,7 @@ private fun Action.ColorGroup.toElementColor(): Color = when (this) {
     Action.ColorGroup.Careportal       -> ElementType.NOTE.color()
     Action.ColorGroup.Pump             -> ElementType.PUMP.color()
     Action.ColorGroup.Aaps             -> ElementType.AAPS.color()
+    Action.ColorGroup.Tsunami          -> ElementType.TSUNAMI.color()
     Action.ColorGroup.RunningMode      -> ElementType.RUNNING_MODE.color()
 }
 

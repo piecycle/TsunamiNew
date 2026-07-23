@@ -128,6 +128,10 @@ data class UserEntry(
         SCENE_ACTIVATED,
         SCENE_DEACTIVATED,
         REMOTE_CONFIG_CHANGED,
+        TSUNAMI,
+        CANCEL_TSUNAMI,
+        CANCEL_TSUNAMI_BOLUS,
+        TSUNAMI_BOLUS,
         UNKNOWN
         ;
     }
@@ -146,6 +150,7 @@ data class UserEntry(
         CalibrationDialog,
         ConcentrationDialog,
         FillDialog,
+        TsunamiDialog,      //MP Tsunami
         SiteRotationDialog,
         BgCheck,
         SensorInsert,

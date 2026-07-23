@@ -19,6 +19,7 @@ import app.aaps.core.data.model.SourceSensor
 import app.aaps.core.data.model.TB
 import app.aaps.core.data.model.TDD
 import app.aaps.core.data.model.TE
+import app.aaps.core.data.model.TSU
 import app.aaps.core.data.model.TT
 import app.aaps.core.data.model.UE
 import app.aaps.core.data.pump.defs.PumpType
@@ -50,11 +51,13 @@ import app.aaps.database.entities.StepsCount
 import app.aaps.database.entities.TemporaryBasal
 import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.TherapyEvent
+import app.aaps.database.entities.Tsunami
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.persistence.converters.fromDb
 import app.aaps.database.persistence.converters.toDb
 import app.aaps.database.transactions.CancelCurrentTemporaryRunningModeIfAnyTransaction
 import app.aaps.database.transactions.CancelCurrentTemporaryTargetIfAnyTransaction
+import app.aaps.database.transactions.CancelCurrentTsunamiModeIfAnyTransaction
 import app.aaps.database.transactions.CancelProfileSwitchTransaction
 import app.aaps.database.transactions.CancelRunningModeTransaction
 import app.aaps.database.transactions.CancelTherapyEventTransaction
@@ -114,6 +117,7 @@ import app.aaps.database.transactions.SyncPumpExtendedBolusTransaction
 import app.aaps.database.transactions.SyncPumpTemporaryBasalTransaction
 import app.aaps.database.transactions.SyncPumpTotalDailyDoseTransaction
 import app.aaps.database.transactions.SyncTemporaryBasalWithTempIdTransaction
+import app.aaps.database.transactions.TsunamiModeSwitchTransaction
 import app.aaps.database.transactions.UpdateNsIdBolusCalculatorResultTransaction
 import app.aaps.database.transactions.UpdateNsIdBolusTransaction
 import app.aaps.database.transactions.UpdateNsIdCalibrationEntryTransaction
@@ -233,6 +237,9 @@ class PersistenceLayerImpl @Inject constructor(
             FD::class.java  -> repository.changesOfType<Food>()
                 .map { list -> list.map { it.fromDb() } }
 
+            TSU::class.java -> repository.changesOfType<Tsunami>()
+                .map { list -> list.map { it.fromDb() } }
+
             else            -> throw IllegalArgumentException("Unsupported observation type: ${type.simpleName}")
         } as Flow<List<T>>
     }
@@ -258,6 +265,7 @@ class PersistenceLayerImpl @Inject constructor(
                         is DeviceStatus           -> DS::class
                         is HeartRate              -> HR::class
                         is StepsCount             -> SC::class
+                        is Tsunami                -> TSU::class
                         else                      -> null
                     }
                 }.toSet()
@@ -2601,5 +2609,71 @@ class PersistenceLayerImpl @Inject constructor(
 
     override suspend fun getGlucoseValuesByPumpIdRange(source: SourceSensor, startPumpId: Long, endPumpId: Long): List<GV> = withContext(Dispatchers.IO) {
         repository.getGlucoseValuesByPumpIdRange(source.name, startPumpId, endPumpId).map { it.fromDb() }
+    }
+
+    // Tsunami
+    /* MP Deprecated
+    override fun getTsunamiModeActiveAt(timestamp: Long): Int? =
+        repository.getTsunamiModeActiveAt(timestamp)
+    */
+    override suspend fun getTsunamiActiveAt(timestamp: Long): TSU? =
+        repository.getTsunamiActiveAt(timestamp)?.fromDb()
+
+    override suspend fun insertOrUpdateTsunami(tsu: TSU, action: Action, source: Sources, note: String?, listValues: List<ValueWithUnit>)
+        : PersistenceLayer.TransactionResult<TSU> = withContext(Dispatchers.IO) {
+        try {
+            val result = repository.runTransactionForResultSuspend(TsunamiModeSwitchTransaction(tsu.toDb()))
+            val transactionResult = PersistenceLayer.TransactionResult<TSU>()
+            val ueValues = mutableListOf<UE>()
+            result.inserted.forEach {
+                ueValues.add(
+                    UE(
+                        timestamp = dateUtil.now(),
+                        action = action,
+                        source = source,
+                        note = note ?: "",
+                        values = listValues
+                    )
+                )
+                aapsLogger.debug(LTag.DATABASE, "Inserted Tsunami from ${source.name} $it")
+                transactionResult.inserted.add(it.fromDb())
+            }
+            result.updated.forEach {
+                aapsLogger.debug(LTag.DATABASE, "Updated Tsunami from ${source.name} $it")
+                transactionResult.updated.add(it.fromDb())
+            }
+            log(ueValues)
+            transactionResult
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.DATABASE, "Error while saving Tsunami mode.", e)
+            throw e
+        }
+    }
+
+    override suspend fun cancelCurrentTsunamiModeIfAny(timestamp: Long, action: Action, source: Sources, note: String?, listValues: List<ValueWithUnit>)
+        : PersistenceLayer.TransactionResult<TSU> = withContext(Dispatchers.IO) {
+        try {
+            val result = repository.runTransactionForResultSuspend(CancelCurrentTsunamiModeIfAnyTransaction(timestamp))
+            val transactionResult = PersistenceLayer.TransactionResult<TSU>()
+            val ueValues = mutableListOf<UE>()
+            result.updated.forEach {
+                ueValues.add(
+                    UE(
+                        timestamp = dateUtil.now(),
+                        action = action,
+                        source = source,
+                        note = note ?: "",
+                        values = listValues
+                    )
+                )
+                aapsLogger.debug(LTag.DATABASE, "Updated Tsunami from ${source.name} $it")
+                transactionResult.updated.add(it.fromDb())
+            }
+            log(ueValues)
+            transactionResult
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.DATABASE, "Error while updating Tsunami mode.", e)
+            throw e
+        }
     }
 }

@@ -120,6 +120,10 @@ class TranslatorImpl @Inject internal constructor(
         Action.SCENE_ACTIVATED                 -> rh.gs(R.string.uel_scene_activated)
         Action.SCENE_DEACTIVATED               -> rh.gs(R.string.uel_scene_deactivated)
         Action.REMOTE_CONFIG_CHANGED           -> rh.gs(R.string.uel_remote_config_changed)
+        Action.TSUNAMI                         -> rh.gs(R.string.uel_tsunami)
+        Action.TSUNAMI_BOLUS                   -> rh.gs(R.string.uel_tsunami)
+        Action.CANCEL_TSUNAMI                  -> rh.gs(R.string.uel_cancel_tsunami)
+        Action.CANCEL_TSUNAMI_BOLUS            -> rh.gs(R.string.uel_cancel_tsunami_bolus)
         Action.UNKNOWN                         -> rh.gs(R.string.unknown)
     }
 

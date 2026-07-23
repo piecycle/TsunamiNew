@@ -252,9 +252,9 @@ enum class BooleanKey(
     SiteRotationManageCgm("site_rotation_manage_cgm", defaultValue = false, titleResId = R.string.pref_title_site_rotation_manage_cgm, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
 
     //Tsunami
-    TsuSMBscaling(key = "key_tsu_SMB_scaling", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt),
-    EnableWave(key = "key_enable_wave_mode", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt),
-    WaveUseSMBCap(key = "key_use_wave_smbcap", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = EnableWave),
-    HideTsunamiButton(key = "key_hide_tsunami_button", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = EnableWave),
-    WaveSMBCapScaling(key = "key_wave_SMB_scaling", defaultValue = false, titleResId = R.string.pref_title_wear_wizard_tt, dependency = WaveUseSMBCap),
+    TsuSMBscaling(key = "key_tsu_SMB_scaling", defaultValue = false, titleResId = R.string.tsu_SMB_scaling_title, summaryResId = R.string.tsu_SMB_scaling_summary),
+    EnableWave(key = "key_enable_wave_mode", defaultValue = false, titleResId = R.string.enable_wave_mode_title, summaryResId = R.string.enable_wave_mode_summary),
+    WaveUseSMBCap(key = "key_use_wave_smbcap", defaultValue = false, titleResId = R.string.use_wave_smbcap_title, summaryResId = R.string.use_wave_smbcap_summary, dependency = EnableWave),
+    HideTsunamiButton(key = "key_hide_tsunami_button", defaultValue = false, titleResId = R.string.tsu_hide_tsunami_button_title, summaryResId = R.string.tsu_hide_tsunami_button_summary,dependency = EnableWave),
+    WaveSMBCapScaling(key = "key_wave_SMB_scaling", defaultValue = false, titleResId = R.string.wave_SMB_scaling_title, summaryResId = R.string.wave_SMB_scaling_summary, dependency = WaveUseSMBCap),
 }

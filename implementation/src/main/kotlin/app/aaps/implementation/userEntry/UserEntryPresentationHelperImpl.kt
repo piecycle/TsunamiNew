@@ -81,6 +81,7 @@ import app.aaps.core.ui.compose.icons.IcQuickwizard
 import app.aaps.core.ui.compose.icons.IcSiteRotation
 import app.aaps.core.ui.compose.icons.IcStats
 import app.aaps.core.ui.compose.icons.IcTbrHigh
+import app.aaps.core.ui.compose.icons.IcTsunami
 import app.aaps.core.ui.compose.icons.IcTtHigh
 import app.aaps.core.ui.compose.icons.IcXDrip
 import app.aaps.core.ui.compose.navigation.color
@@ -175,6 +176,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         Sources.Tomato              -> IcPluginTomato
         Sources.TreatmentDialog     -> Icons.Default.Add
         Sources.Treatments          -> IcClinicalNotes
+        Sources.TsunamiDialog       -> IcTsunami
         Sources.Unknown             -> Icons.Default.Settings
         Sources.VirtualPump         -> IcPluginVirtualPump
         Sources.Wear                -> Icons.Default.Watch
@@ -262,6 +264,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         Sources.Tomato              -> ElementType.CGM_DEX.color()
         Sources.TreatmentDialog     -> ElementType.TREATMENT.color()
         Sources.Treatments          -> ElementType.TREATMENTS.color()
+        Sources.TsunamiDialog       -> ElementType.TSUNAMI.color()
         Sources.Unknown             -> ElementType.AAPS.color()
         Sources.VirtualPump         -> ElementType.PUMP.color()
         Sources.Wear                -> ElementType.AAPS.color()

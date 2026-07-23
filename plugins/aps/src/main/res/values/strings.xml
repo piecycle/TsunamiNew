@@ -136,11 +136,8 @@
     <string name="show_tsunami_button_title" translatable="false">Show Tsunami button</string>
     <string name="wave_mode_settings_title" translatable="false">Wave mode settings</string>
     <string name="key_enable_wave_mode" translatable="false">enable_wave_mode</string>
-    <string name="enable_wave_mode_summary" translatable="false">Glucose watchdog to overrule the openAPSSMB algorithm within specified time slot if Tsunami mode is inactive.</string>
-    <string name="enable_wave_mode_title" translatable="false">Enable wave mode</string>
     <string name="key_use_wave_smbcap" translatable="false">use_wave_smbcap</string>
-    <string name="use_wave_smbcap_summary" translatable="false">Use fixed SMB cap instead of basal minutes as SMB size limiter.</string>
-    <string name="use_wave_smbcap_title" translatable="false">Use SMB cap</string>
+
     <string name="key_wave_smbcap" translatable="false">wave_smbcap</string>
     <string name="wave_smbcap_message" translatable="false">max SMB size deliverable by wave mode.</string>
     <string name="wave_smbcap_title" translatable="false">Wave SMB cap [U]</string>
@@ -155,14 +152,9 @@
     <string name="wave_insulinReqPCT_title">Wave mode insulin delivery percentage [%]</string>
     <string name="key_tsu_SMB_scaling" translatable="false">tsu_SMB_scaling</string>
 
-    <string name="tsu_hide_tsunami_button_title">Hide Tsunami button</string>
-    <string name="tsu_hide_tsunami_button_summary">For users wishing to use wave mode only.</string>
 
-    <string name="tsu_SMB_scaling_title">Enable SMB cap scaling</string>
-    <string name="tsu_SMB_scaling_summary">Scales Tsunami SMB cap with the current profile percentage (max: 130%).</string>
     <string name="key_wave_SMB_scaling" translatable="false">wave_SMB_scaling</string>
-    <string name="wave_SMB_scaling_title">Enable SMB cap scaling</string>
-    <string name="wave_SMB_scaling_summary">Scales Wave SMB cap with the current profile percentage (max: 130%).</string>
+
     <string name="key_advanced_tsunami" translatable="false">Advanced_tsunami_settings</string>
     <string name="advanced_tsunami_title">Advanced Tsunami settings</string>
     <string name="key_tsu_activity_target" translatable="false">tsu_activity_target</string>
