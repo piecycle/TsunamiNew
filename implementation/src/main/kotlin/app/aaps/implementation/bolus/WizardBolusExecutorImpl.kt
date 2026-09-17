@@ -8,6 +8,7 @@ import app.aaps.core.data.model.ICfg
 import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TT
+import app.aaps.core.data.model.TSU
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Action
@@ -41,6 +42,8 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -90,6 +93,7 @@ class WizardBolusExecutorImpl @Inject constructor(
     private val automation: Automation,
     private val notificationManager: NotificationManager,
     private val bolusProgressData: BolusProgressData,
+    private val rxBus: RxBus,
     @ApplicationScope private val appScope: CoroutineScope
 ) : WizardBolusExecutor {
 
@@ -130,6 +134,8 @@ class WizardBolusExecutorImpl @Inject constructor(
         val cancelTempBasal: Boolean = false,
         val cancelExtendedBolus: Boolean = false,
         val insulinActivate: BatchAction.InsulinActivate? = null,
+        val tsunami: BatchAction.Tsunami? = null,
+        val cancelTsunami: Boolean = false,
         // Careportal events — a LIST (defensive; clients currently send one per batch), unlike the ≤1 single-slot types.
         val therapyEvents: List<BatchAction.TherapyEvent> = emptyList(),
         // Edits of existing therapy events (location/arrow/note) — likewise list-handled; the master updates in place.
@@ -314,6 +320,7 @@ class WizardBolusExecutorImpl @Inject constructor(
         val ia = actions.filterIsInstance<BatchAction.InsulinActivate>().firstOrNull() // ≤1 by construction
         val tes = actions.filterIsInstance<BatchAction.TherapyEvent>() // ≥0; handled as a list (defensive — clients currently send one per batch)
         val teEdits = actions.filterIsInstance<BatchAction.TherapyEventEdit>() // ≥0; existing-event metadata edits (location/arrow/note)
+        val tsu = actions.filterIsInstance<BatchAction.Tsunami>().firstOrNull()
         val recordOnly = bolus?.recordOnly == true
         // Originating QuickWizard (INSULIN/CARBS mode), resolved on the MASTER's own store so confirm() can mark it used
         // (lastUsed cooldown) here — the master is SOT and republishes the pref; the client never writes it. Null for a
@@ -407,7 +414,8 @@ class WizardBolusExecutorImpl @Inject constructor(
         // client gets an error instead of a silent no-op at confirm (the batch confirm path has no per-action failure channel).
         if (ia != null && profileFunction.getProfile() !is ProfileSealed.EPS)
             return WizardBolusExecutor.PrepareResult.Error(rh.gs(R.string.no_profile_set))
-        if (insulin <= 0.0 && carbs == 0 && tt == null && ps == null && rm == null && tb == null && eb == null && ctb == null && ceb == null && ia == null && tes.isEmpty() && teEdits.isEmpty())
+
+        if (insulin <= 0.0 && carbs == 0 && tt == null && ps == null && rm == null && tb == null && eb == null && ctb == null && ceb == null && ia == null && tes.isEmpty() && teEdits.isEmpty() && tsu == null && !actions.any { it is BatchAction.CancelTsunami })
         // Nothing to do after caps/clamps (e.g. negative carbs with no COB to remove): a no-op, NOT a delivery
         // error — the caller renders the neutral "no action selected" message, never the bolus-error title.
             return WizardBolusExecutor.PrepareResult.NoAction
@@ -418,14 +426,14 @@ class WizardBolusExecutorImpl @Inject constructor(
             carbTimeMinutes = bolus?.carbsTimeOffsetMinutes ?: 0, notes = bolus?.notes, mode = BolusMode.FIXED,
             eventType = eventType, carbsDurationHours = bolus?.carbsDurationHours ?: 0,
             eCarbsGrams = bolus?.eCarbsGrams ?: 0, eCarbsDelayMinutes = bolus?.eCarbsDelayMinutes ?: 0, eCarbsDurationHours = bolus?.eCarbsDurationHours ?: 0,
-            tempTarget = tt, profileSwitch = ps, runningMode = rm, recordOnly = recordOnly, iCfg = bolus?.iCfg, bolusTimestamp = bolus?.timestamp?.takeIf { it > 0L },
+            tempTarget = tt, profileSwitch = ps, runningMode = rm, tsunami = tsu, cancelTsunami = actions.any { it is BatchAction.CancelTsunami }, recordOnly = recordOnly, iCfg = bolus?.iCfg, bolusTimestamp = bolus?.timestamp?.takeIf { it > 0L },
             tempBasal = cappedTb, extendedBolus = cappedEb, cancelTempBasal = ctb != null, cancelExtendedBolus = ceb != null,
             insulinActivate = ia, therapyEvents = tes, therapyEventEdits = teEdits
         )
         // The master is the SOLE author of the confirmation: build the MERGED lines for the whole batch here, so the
         // client renders the master's exact string and a master-local dialog renders the identical one (decision 1).
         val isTtOnly = bolus == null && ps == null && rm == null && cappedTb == null && cappedEb == null && ctb == null && ceb == null && ia == null && tes.isEmpty() && teEdits.isEmpty()
-        val lines = buildFixedLines(bolus, insulin, carbs, recordOnly) +
+        val lines = buildFixedLines(bolus, tsu, insulin, carbs, recordOnly) +
             (tt?.let { buildTtLine(it, isTtOnly) } ?: emptyList()) +
             (ps?.let { buildPsLine(it) } ?: emptyList()) +
             (rm?.let { buildRmLine(it) } ?: emptyList()) +
@@ -516,6 +524,9 @@ class WizardBolusExecutorImpl @Inject constructor(
             p.profileSwitch?.let { applyProfileSwitch(it, source) }
             // A running-mode change is likewise independent of any dose (an RM-only batch no-ops the deliver(0,0)).
             p.runningMode?.let { applyRunningMode(it, source) }
+            // A tsunami mode change is likewise independent of any dose (a Tsunami-only batch no-ops the deliver(0,0)).
+            p.tsunami?.let { applyTsunami(it, source) }
+            if (p.cancelTsunami) applyCancelTsunami(source)
             // Pump-direct manual actions (relayed from a client, or a master-local dialog) — independent of any dose.
             p.tempBasal?.let { applyTempBasal(it, source, onError) }
             p.extendedBolus?.let { applyExtendedBolus(it, source, onError) }
@@ -654,34 +665,45 @@ class WizardBolusExecutorImpl @Inject constructor(
     }
 
     /** The MERGED confirmation lines for a FIXED batch bolus/carbs — the master is the sole author (client renders these verbatim). */
-    private fun buildFixedLines(bolus: BatchAction.Bolus?, insulin: Double, carbs: Int, recordOnly: Boolean): List<ConfirmationLine> {
-        bolus ?: return emptyList()
-        val pumpDescription = activePlugin.activePump.pumpDescription
+    private fun buildFixedLines(bolus: BatchAction.Bolus?, tsunami: BatchAction.Tsunami?, insulin: Double, carbs: Int, recordOnly: Boolean): List<ConfirmationLine> {
         val out = mutableListOf<ConfirmationLine>()
-        if (insulin > 0.0) {
-            out += ConfirmationLine(ConfirmationRole.BOLUS, rh.gs(R.string.confirmation_line, rh.gs(R.string.bolus), decimalFormatter.toPumpSupportedBolusWithUnits(insulin, pumpDescription.bolusStep)))
-            if (recordOnly) {
-                out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.bolus_recorded_only))
-                bolus.iCfg?.let { out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.selected_insulin, it.insulinLabel)) }
-            } else if (abs(insulin - bolus.insulin) > pumpDescription.pumpType.determineCorrectBolusStepSize(insulin)) {
-                out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.bolus_constraint_applied_warn, bolus.insulin, insulin))
+        
+        // Add Tsunami info if present, regardless of bolus
+        if (tsunami != null) {
+            out += ConfirmationLine(ConfirmationRole.TSUNAMI, rh.gs(R.string.confirmation_line, rh.gs(R.string.tsunami_duration), rh.gs(R.string.format_mins, tsunami.durationMinutes)))
+        }
+
+        val note = bolus?.notes?.takeIf { it.isNotEmpty() } ?: tsunami?.notes?.takeIf { it.isNotEmpty() }
+
+        if (bolus != null) {
+            val pumpDescription = activePlugin.activePump.pumpDescription
+            if (insulin > 0.0) {
+                out += ConfirmationLine(ConfirmationRole.BOLUS, rh.gs(R.string.confirmation_line, rh.gs(R.string.bolus), decimalFormatter.toPumpSupportedBolusWithUnits(insulin, pumpDescription.bolusStep)))
+                if (recordOnly) {
+                    out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.bolus_recorded_only))
+                    bolus.iCfg?.let { out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.selected_insulin, it.insulinLabel)) }
+                } else if (abs(insulin - bolus.insulin) > pumpDescription.pumpType.determineCorrectBolusStepSize(insulin)) {
+                    out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.bolus_constraint_applied_warn, bolus.insulin, insulin))
+                }
             }
+            if (carbs != 0) {
+                out += ConfirmationLine(ConfirmationRole.CARBS, rh.gs(R.string.confirmation_line, rh.gs(R.string.carbs), rh.gs(R.string.format_carbs, carbs)))
+                if (!recordOnly && carbs != bolus.carbs)
+                    out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.constraint_applied))
+                // Delayed/extended carbs (e.g. wear eCarbs): show the scheduled start time on the general line so every
+                // surface (phone, client, watch) renders it identically — the one piece of info added to the shared path.
+                if (bolus.carbsTimeOffsetMinutes != 0)
+                    out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.time), dateUtil.timeString(dateUtil.now() + T.mins(bolus.carbsTimeOffsetMinutes.toLong()).msecs())))
+                if (bolus.carbsDurationHours > 0)
+                    out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.duration), rh.gs(R.string.value_with_unit, bolus.carbsDurationHours.toString(), rh.gs(app.aaps.core.interfaces.R.string.shorthour))))
+            }
+            if (bolus.eCarbsGrams > 0)
+                out += ConfirmationLine(ConfirmationRole.CARBS, rh.gs(R.string.wizard_ecarbs, bolus.eCarbsGrams, bolus.eCarbsDurationHours, bolus.eCarbsDelayMinutes))
         }
-        if (carbs != 0) {
-            out += ConfirmationLine(ConfirmationRole.CARBS, rh.gs(R.string.confirmation_line, rh.gs(R.string.carbs), rh.gs(R.string.format_carbs, carbs)))
-            if (!recordOnly && carbs != bolus.carbs)
-                out += ConfirmationLine(ConfirmationRole.WARNING, rh.gs(R.string.constraint_applied))
-            // Delayed/extended carbs (e.g. wear eCarbs): show the scheduled start time on the general line so every
-            // surface (phone, client, watch) renders it identically — the one piece of info added to the shared path.
-            if (bolus.carbsTimeOffsetMinutes != 0)
-                out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.time), dateUtil.timeString(dateUtil.now() + T.mins(bolus.carbsTimeOffsetMinutes.toLong()).msecs())))
-            if (bolus.carbsDurationHours > 0)
-                out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.duration), rh.gs(R.string.value_with_unit, bolus.carbsDurationHours.toString(), rh.gs(app.aaps.core.interfaces.R.string.shorthour))))
+
+        if (note != null) {
+            out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.notes_label), note))
         }
-        if (bolus.eCarbsGrams > 0)
-            out += ConfirmationLine(ConfirmationRole.CARBS, rh.gs(R.string.wizard_ecarbs, bolus.eCarbsGrams, bolus.eCarbsDurationHours, bolus.eCarbsDelayMinutes))
-        if (bolus.notes.isNotEmpty())
-            out += ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(R.string.confirmation_line, rh.gs(R.string.notes_label), bolus.notes))
         return out
     }
 
@@ -850,6 +872,20 @@ class WizardBolusExecutorImpl @Inject constructor(
         RM.Mode.DISCONNECTED_PUMP                                                -> rh.gs(R.string.pump_disconnected)
         RM.Mode.RESUME                                                           -> if (loop.runningMode() == RM.Mode.DISCONNECTED_PUMP) rh.gs(R.string.pump_reconnect) else rh.gs(R.string.resumeloop)
         RM.Mode.SUPER_BOLUS, RM.Mode.SUSPENDED_BY_PUMP, RM.Mode.SUSPENDED_BY_DST -> rh.gs(R.string.running_mode)
+    }
+
+    private suspend fun applyTsunami(tsunami: BatchAction.Tsunami, source: Sources) {
+        val tsu = TSU(
+            timestamp = dateUtil.now(),
+            duration = T.mins(tsunami.durationMinutes.toLong()).msecs(),
+            tsunamiMode = 2 // 2 = Tsunami mode
+        )
+        persistenceLayer.insertOrUpdateTsunami(tsu, Action.TSUNAMI, source, tsunami.notes, listOf(ValueWithUnit.Minute(tsunami.durationMinutes)))
+        rxBus.send(EventRefreshOverview("tsunami_started", true))
+    }
+
+    private suspend fun applyCancelTsunami(source: Sources) {
+        persistenceLayer.cancelCurrentTsunamiModeIfAny(dateUtil.now(), Action.CANCEL_TSUNAMI, source, null, emptyList())
     }
 
     /** Apply a batch temp basal on the master's pump (already capped + style-validated in prepareBatch). */

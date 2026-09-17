@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -17,6 +18,8 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventConfigBuilderChange
+import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.rx.events.EventShowDialog
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
@@ -34,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import java.util.Locale
@@ -49,6 +53,14 @@ data class CobUiState(
     val text: String = "",
     val carbsReq: Int = 0,
     val cobValue: Double = 0.0
+)
+
+@Immutable
+data class TsuUiState(
+    val isVisible: Boolean = false,
+    val isActive: Boolean = false,
+    val text: String = "n/a",
+    val duration: String = ""
 )
 
 @Immutable
@@ -91,9 +103,16 @@ class ChipsViewModel @AssistedInject constructor(
     private val iobCobTicker = flow {
         while (true) {
             emit(Unit)
-            delay(150_000L) // 2.5 minutes
+            delay(60_000L) // Revert to 2.5 minutes refresh // TSUNAMI: Changed from 150_000 to 60_000 to trigger more frequent updates for Tsunami chip
         }
     }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
+
+    private val tsuRefreshFlow = rxBus.toFlow(EventRefreshOverview::class.java)
+
+    // Switching the active APS plugin doesn't fire EventRefreshOverview, so without this the
+    // Tsunami chip's visibility (and the IOB/COB icon layout that depends on its width) would
+    // lag behind the switch until the next iobCobTicker tick or an actual loop run.
+    private val configChangeFlow = rxBus.toFlow(EventConfigBuilderChange::class.java)
 
     val iobUiState: StateFlow<IobUiState> = iobCobTicker.combine(cache.iobGraphFlow) { _, _ ->
         val bolusIob = iobCobCalculator.calculateIobFromBolus().round()
@@ -140,6 +159,31 @@ class ChipsViewModel @AssistedInject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = SensitivityUiState()
+    )
+
+    val tsuUiState: StateFlow<TsuUiState> = combine(
+        iobCobTicker,
+        tsuRefreshFlow.onStart { emit(EventRefreshOverview("init")) },
+        configChangeFlow.onStart { emit(EventConfigBuilderChange()) }
+    ) { _, _, _ ->
+        val isTsunamiSelected = activePlugin.activeAPS?.algorithm == APSResult.Algorithm.TSUNAMI
+        val now = dateUtil.now()
+        val activeTsunami = persistenceLayer.getTsunamiActiveAt(now)
+        if (isTsunamiSelected && activeTsunami != null) {
+            val remaining = (activeTsunami.timestamp + activeTsunami.duration - now) / 60000L
+            TsuUiState(
+                isVisible = true,
+                isActive = true,
+                text = "${remaining}m",
+                duration = "${remaining}m"
+            )
+        } else {
+            TsuUiState(isVisible = isTsunamiSelected, isActive = false, text = "n/a", duration = "n/a")
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = TsuUiState()
     )
 
     private suspend fun buildSensitivityUiState(): SensitivityUiState {

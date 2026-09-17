@@ -737,7 +737,6 @@ open class TsunamiPlugin @Inject constructor(
                 titleResId = R.string.wave_mode_settings_title,
                 items = listOf(
                     BooleanKey.EnableWave,
-                    BooleanKey.HideTsunamiButton,
                     DoubleKey.WaveStart,
                     DoubleKey.WaveEnd,
                     BooleanKey.WaveUseSMBCap,
@@ -785,98 +784,4 @@ open class TsunamiPlugin @Inject constructor(
         ),
         icon = pluginDescription.icon
     )
-/*
-    // TODO: Remove after full migration to Compose preferences (getPreferenceScreenContent)
-    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        if (requiredKey != null &&
-            requiredKey != "tsunami_mode_settings" &&
-            requiredKey != "key_advanced_tsunami" &&
-            requiredKey != "wave_mode_settings" &&
-            requiredKey != "key_advanced_wave" &&
-            requiredKey != "absorption_smb_advanced"
-        ) return
-        val category = PreferenceCategory(context)
-        parent.addPreference(category)
-        category.apply {
-            key = "key_tsunami_settings"
-            title = rh.gs(R.string.tsunami)
-            initialExpandedChildrenCount = 0
-            addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsMaxBasal, dialogMessage = R.string.openapsma_max_basal_summary, title = R.string.openapsma_max_basal_title))
-            addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsSmbMaxIob, dialogMessage = R.string.openapssmb_max_iob_summary, title = R.string.openapssmb_max_iob_title))
-            addPreference(preferenceManager.createPreferenceScreen(context).apply {
-                key = "tsunami_mode_settings"
-                title = rh.gs(R.string.tsunami_mode_settings_title)
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.TsuSMBCap, dialogMessage = R.string.tsunami_smbcap_summary, title = R.string.tsunami_smbcap_title))
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.TsuSMBscaling, summary = R.string.tsu_SMB_scaling_summary, title = R.string.tsu_SMB_scaling_title))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.TsuButtonIncrement1, dialogMessage = R.string.tsunami_button_insulin_increment_button_message, title = R.string.tsunami_button_insulin_increment_1))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.TsuButtonIncrement2, dialogMessage = R.string.tsunami_button_insulin_increment_button_message, title = R.string.tsunami_button_insulin_increment_2))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.TsuButtonIncrement3, dialogMessage = R.string.tsunami_button_insulin_increment_button_message, title = R.string.tsunami_button_insulin_increment_3))
-                addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.TsuDefaultDuration, dialogMessage = R.string.tsunami_default_duration_message, title = R.string.tsunami_default_duration_title))
-                val advancedTsu = PreferenceCategory(context)
-                addPreference(advancedTsu)
-                advancedTsu.apply {
-                    key = "key_advanced_tsunami"
-                    title = rh.gs(R.string.advanced_tsunami_title)
-                    //addPreference(AdaptiveIntentPreference(ctx = context, intentKey = IntentKey.TsuWaveDisclaimer, summary = R.string.advanced_tsu_wave_disclaimer))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.TsuActivityTarget, dialogMessage = R.string.tsu_activity_target_summary, title = R.string.tsu_activity_target_title))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.TsuInsReqPCT, dialogMessage = R.string.insulinReqPCT_summary, summary = R.string.insulinReqPCT_summary, title = R.string.insulinReqPCT_title))
-                }
-            })
-            addPreference(preferenceManager.createPreferenceScreen(context).apply {
-                key = "wave_mode_settings"
-                title = rh.gs(R.string.wave_mode_settings_title)
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.EnableWave, summary = R.string.enable_wave_mode_summary, title = R.string.enable_wave_mode_title))
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.HideTsunamiButton, summary = R.string.tsu_hide_tsunami_button_summary, title = R.string.tsu_hide_tsunami_button_title))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.WaveStart, dialogMessage = R.string.wave_start_summary, title = R.string.wave_start_title))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.WaveEnd, dialogMessage = R.string.wave_end_summary, title = R.string.wave_end_title))
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.WaveUseSMBCap, summary = R.string.use_wave_smbcap_summary, title = R.string.use_wave_smbcap_title))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.WaveSMBCap, dialogMessage = R.string.wave_smbcap_message, title = R.string.wave_smbcap_title))
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.WaveSMBCapScaling, summary = R.string.wave_SMB_scaling_summary, title = R.string.wave_SMB_scaling_title))
-                val advancedWave = PreferenceCategory(context)
-                addPreference(advancedWave)
-                advancedWave.apply {
-                    key = "key_advanced_wave"
-                    title = rh.gs(R.string.advanced_wave_title)
-                    //addPreference(AdaptiveIntentPreference(ctx = context, intentKey = IntentKey.TsuWaveDisclaimer, summary = R.string.advanced_tsu_wave_disclaimer))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.WaveActivityTarget, dialogMessage = R.string.wave_activity_target_summary, title = R.string.wave_activity_target_title))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.WaveInsReqPCT, dialogMessage = R.string.wave_insulinReqPCT_message, title = R.string.wave_insulinReqPCT_title))
-                }
-            })
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseDynamicSensitivity, summary = R.string.use_dynamic_sensitivity_summary, title = R.string.use_dynamic_sensitivity_title))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseAutosens, title = R.string.openapsama_use_autosens))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsDynIsfAdjustmentFactor, dialogMessage = R.string.dyn_isf_adjust_summary, title = R.string.dyn_isf_adjust_title))
-            addPreference(AdaptiveUnitPreference(ctx = context, unitKey = UnitDoubleKey.ApsLgsThreshold, dialogMessage = R.string.lgs_threshold_summary, title = R.string.lgs_threshold_title))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsDynIsfAdjustSensitivity, summary = R.string.dynisf_adjust_sensitivity_summary, title = R.string.dynisf_adjust_sensitivity))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsSensitivityRaisesTarget, summary = R.string.sensitivity_raises_target_summary, title = R.string.sensitivity_raises_target_title))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsResistanceLowersTarget, summary = R.string.resistance_lowers_target_summary, title = R.string.resistance_lowers_target_title))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmb, summary = R.string.enable_smb_summary, title = R.string.enable_smb))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmbWithHighTt, summary = R.string.enable_smb_with_high_temp_target_summary, title = R.string.enable_smb_with_high_temp_target))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmbAlways, summary = R.string.enable_smb_always_summary, title = R.string.enable_smb_always))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmbWithCob, summary = R.string.enable_smb_with_cob_summary, title = R.string.enable_smb_with_cob))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmbWithLowTt, summary = R.string.enable_smb_with_temp_target_summary, title = R.string.enable_smb_with_temp_target))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseSmbAfterCarbs, summary = R.string.enable_smb_after_carbs_summary, title = R.string.enable_smb_after_carbs))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsMaxSmbFrequency, title = R.string.smb_interval_summary))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsMaxMinutesOfBasalToLimitSmb, title = R.string.smb_max_minutes_summary))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsUamMaxMinutesOfBasalToLimitSmb, dialogMessage = R.string.uam_smb_max_minutes, title = R.string.uam_smb_max_minutes_summary))
-            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsUseUam, summary = R.string.enable_uam_summary, title = R.string.enable_uam))
-            addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.ApsCarbsRequestThreshold, dialogMessage = R.string.carbs_req_threshold_summary, title = R.string.carbs_req_threshold))
-            addPreference(preferenceManager.createPreferenceScreen(context).apply {
-                key = "absorption_smb_advanced"
-                title = rh.gs(app.aaps.core.ui.R.string.advanced_settings_title)
-                addPreference(
-                    AdaptiveIntentPreference(
-                        ctx = context,
-                        intentKey = ApsIntentKey.LinkToDocs,
-                        intent = Intent().apply { action = Intent.ACTION_VIEW; data = rh.gs(R.string.openapsama_link_to_preference_json_doc).toUri() },
-                        summary = R.string.openapsama_link_to_preference_json_doc_txt
-                    )
-                )
-                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.ApsAlwaysUseShortDeltas, summary = R.string.always_use_short_avg_summary, title = R.string.always_use_short_avg))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsMaxDailyMultiplier, dialogMessage = R.string.openapsama_max_daily_safety_multiplier_summary, title = R.string.openapsama_max_daily_safety_multiplier))
-                addPreference(
-                    AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.ApsMaxCurrentBasalMultiplier, dialogMessage = R.string.openapsama_current_basal_safety_multiplier_summary, title = R.string.openapsama_current_basal_safety_multiplier)
-                )
-            })
-        }
-    }*/
 }

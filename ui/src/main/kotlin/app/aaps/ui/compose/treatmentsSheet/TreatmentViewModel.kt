@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.source.DexcomBoyda
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.VisibilityContext
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.wizard.QuickWizard
 import app.aaps.core.objects.wizard.QuickWizardEntry
@@ -56,7 +57,8 @@ class TreatmentViewModel @Inject constructor(
     private val rxBus: RxBus,
     private val aapsLogger: AAPSLogger,
     private val dexcomBoyda: DexcomBoyda,
-    private val elementAvailability: ElementAvailability
+    private val elementAvailability: ElementAvailability,
+    private val visibilityContext: VisibilityContext
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TreatmentUiState())
@@ -75,6 +77,7 @@ class TreatmentViewModel @Inject constructor(
             preferences.observe(BooleanKey.OverviewShowInsulinButton).drop(1).map {},
             preferences.observe(BooleanKey.OverviewShowCarbsButton).drop(1).map {},
             preferences.observe(BooleanKey.OverviewShowWizardButton).drop(1).map {},
+            preferences.observe(BooleanKey.OverviewShowTsunamiButton).drop(1).map {},
             preferences.observe(BooleanKey.GeneralSimpleMode).drop(1).map {},
             // QuickWizard entries changed (local edit or synced from the main phone).
             quickWizard.changes.drop(1).map {},
@@ -98,6 +101,7 @@ class TreatmentViewModel @Inject constructor(
             val showInsulin = preferences.get(BooleanKey.OverviewShowInsulinButton)
             val showCarbs = preferences.get(BooleanKey.OverviewShowCarbsButton)
             val showCalculator = preferences.get(BooleanKey.OverviewShowWizardButton)
+            val showTsunami = preferences.get(BooleanKey.OverviewShowTsunamiButton) && visibilityContext.isTsunamiActiveAPS //This line toggles visibility of Tsunami button in the treatments menu, not the toggle switch in the treatments settings menu
 
             val showSettingsIcon = !preferences.simpleMode
 
@@ -109,6 +113,7 @@ class TreatmentViewModel @Inject constructor(
                     showInsulin = showInsulin,
                     showCarbs = showCarbs,
                     showCalculator = showCalculator,
+                    showTsunami = showTsunami,
                     isDexcomSource = isDexcomSource,
                     quickWizardItems = quickWizardItems,
                     showSettingsIcon = showSettingsIcon

@@ -27,6 +27,9 @@ import app.aaps.ui.compose.overview.chips.RunningModeChip
 import app.aaps.ui.compose.overview.chips.SensitivityUiState
 import app.aaps.ui.compose.overview.chips.TbrChip
 import app.aaps.ui.compose.overview.chips.TempTargetChip
+import app.aaps.ui.compose.overview.chips.TsunamiChip
+import app.aaps.ui.compose.overview.chips.TsunamiUiState
+import app.aaps.ui.compose.overview.chips.TsuUiState
 
 @Composable
 fun OverviewChipsColumn(
@@ -48,12 +51,11 @@ fun OverviewChipsColumn(
     tbrState: TbrState,
     iobUiState: IobUiState,
     cobUiState: CobUiState,
+    tsuUiState: TsuUiState,
     sensitivityUiState: SensitivityUiState,
     onNavigate: (NavigationRequest) -> Unit,
     onTbrChipClick: () -> Unit,
     onIobChipClick: () -> Unit,
-    // The command chips (running mode / profile / temp target) open mutating screens — their click is disabled on an
-    // unpaired client (same MASTER_OR_PAIRED_CLIENT gate as nav/Manage), while the chip stays visible as status.
     commandsAllowed: Boolean = true,
     modifier: Modifier = Modifier,
     trailingContent: @Composable (RowScope.() -> Unit)? = null
@@ -127,7 +129,15 @@ fun OverviewChipsColumn(
         IobCobChipsRow(
             iobUiState = iobUiState,
             cobUiState = cobUiState,
-            onIobChipClick = onIobChipClick
+            onIobChipClick = onIobChipClick,
+            trailingContent = {
+                if (tsuUiState.isVisible) {
+                    TsunamiChip(
+                        state = TsunamiUiState(isActive = tsuUiState.isActive, text = tsuUiState.text, duration = tsuUiState.duration),
+                        onClick = { onNavigate(NavigationRequest.Element(ElementType.TSUNAMI)) }
+                    )
+                }
+            }
         )
         SensitivityChipBlock(
             state = sensitivityUiState,
@@ -206,4 +216,3 @@ private fun NarrowChips(
         )
     }
 }
-

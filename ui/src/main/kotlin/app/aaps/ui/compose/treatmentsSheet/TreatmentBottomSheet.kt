@@ -61,6 +61,7 @@ fun TreatmentBottomSheet(
     showInsulin: Boolean,
     showCarbs: Boolean,
     showCalculator: Boolean,
+    showTsunami: Boolean,
     isDexcomSource: Boolean,
     showSettingsIcon: Boolean,
     // QuickWizard
@@ -94,6 +95,7 @@ fun TreatmentBottomSheet(
                 showInsulin = showInsulin,
                 showCarbs = showCarbs,
                 showCalculator = showCalculator,
+                showTsunami = showTsunami,
                 isDexcomSource = isDexcomSource,
                 showSettingsIcon = showSettingsIcon,
                 onSettingsClick = { showSettings = true }
@@ -113,6 +115,7 @@ private fun TreatmentSelectionContent(
     showInsulin: Boolean,
     showCarbs: Boolean,
     showCalculator: Boolean,
+    showTsunami: Boolean,
     isDexcomSource: Boolean,
     showSettingsIcon: Boolean,
     onSettingsClick: () -> Unit
@@ -280,6 +283,17 @@ private fun TreatmentSelectionContent(
                 onClick = { onNavigate(NavigationRequest.Element(ElementType.BOLUS_WIZARD)) }
             )
         }
+
+        // Tsunami
+        if (showTsunami) {
+            TreatmentItem(
+                elementType = ElementType.TSUNAMI,
+                enabled = true,
+                disabledAlpha = disabledAlpha,
+                onDismiss = onDismiss,
+                onClick = { onNavigate(NavigationRequest.Element(ElementType.TSUNAMI)) }
+            )
+        }
     }
 }
 
@@ -376,6 +390,7 @@ private fun TreatmentBottomSheetPreview() {
             showInsulin = true,
             showCarbs = true,
             showCalculator = true,
+            showTsunami = true,
             isDexcomSource = false,
             showSettingsIcon = true,
             onSettingsClick = {}

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ui.ConfirmationLine
+import app.aaps.core.data.ui.ConfirmationRole
 import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.bolus.BatchAction
 import app.aaps.core.interfaces.bolus.BatchExecutor
@@ -109,8 +110,9 @@ class TsunamiDialogViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            val isTsunamiActive = persistenceLayer.getTsunamiActiveAt(dateUtil.now()) != null
-            _uiState.update { it.copy(isTsunamiActive = isTsunamiActive) }
+            val now = dateUtil.now()
+            val activeTsunami = persistenceLayer.getTsunamiActiveAt(now)
+            _uiState.update { it.copy(isTsunamiActive = activeTsunami != null, activeTsunami = activeTsunami) }
         }
     }
 
@@ -155,22 +157,32 @@ class TsunamiDialogViewModel @Inject constructor(
             confirmedState = state
             pendingIsCancelOnly = false
             val actions = buildMainActions(state)
+            android.util.Log.d("TsunamiDialogViewModel", "Actions to prepare: $actions")
             if (actions.isEmpty()) {
                 _sideEffect.tryEmit(SideEffect.ShowNoActionDialog)
                 return@launch
             }
             when (val prepared = batchExecutor.prepare(actions, Sources.TsunamiDialog, rh.gs(app.aaps.core.ui.R.string.tsunami))) {
-                is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, prepared.lines))
-                is ActionProgress.Rejected -> when (prepared.reason) {
-                    FailureReason.NotReachable, FailureReason.ControlDisabled ->
-                        rxBus.send(EventShowDialog.Ok(title = rh.gs(app.aaps.core.ui.R.string.tsunami), message = rh.gs(prepared.reason.failTextResId())))
-                    FailureReason.NoAction -> _sideEffect.tryEmit(SideEffect.ShowNoActionDialog)
-                    else -> prepared.detail?.let { detail ->
-                        if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = rh.gs(app.aaps.core.ui.R.string.tsunami), message = detail))
-                        else _sideEffect.tryEmit(SideEffect.ShowDeliveryError(detail))
+                is ActionProgress.Prepared -> {
+                    val lines = prepared.lines.toMutableList()
+                    if (actions.any { it is BatchAction.CancelTsunami }) {
+                        lines.add(0, ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(app.aaps.core.ui.R.string.cancel_tsunami)))
+                    }
+                    _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, lines))
+                }
+                is ActionProgress.Rejected -> {
+                    android.util.Log.d("TsunamiDialogViewModel", "Rejected: ${prepared.reason}")
+                    when (prepared.reason) {
+                        FailureReason.NotReachable, FailureReason.ControlDisabled ->
+                            rxBus.send(EventShowDialog.Ok(title = rh.gs(app.aaps.core.ui.R.string.tsunami), message = rh.gs(prepared.reason.failTextResId())))
+                        FailureReason.NoAction -> _sideEffect.tryEmit(SideEffect.ShowNoActionDialog)
+                        else -> prepared.detail?.let { detail ->
+                            if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = rh.gs(app.aaps.core.ui.R.string.tsunami), message = detail))
+                            else _sideEffect.tryEmit(SideEffect.ShowDeliveryError(detail))
+                        }
                     }
                 }
-                else -> Unit // Unconfirmed → app-level modal
+                is ActionProgress.Applied, is ActionProgress.Sending, is ActionProgress.MasterExecuting, is ActionProgress.Unconfirmed -> Unit
             }
         }
     }
@@ -188,7 +200,11 @@ class TsunamiDialogViewModel @Inject constructor(
                 BatchAction.CancelTsunami
             )
             when (val prepared = batchExecutor.prepare(actions, Sources.TsunamiDialog, rh.gs(app.aaps.core.ui.R.string.tsunami))) {
-                is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, prepared.lines))
+                is ActionProgress.Prepared -> {
+                    val linesWithCancel = prepared.lines.toMutableList()
+                    linesWithCancel.add(0, ConfirmationLine(ConfirmationRole.NORMAL, rh.gs(app.aaps.core.ui.R.string.cancel_tsunami)))
+                    _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, linesWithCancel))
+                }
                 is ActionProgress.Rejected -> when (prepared.reason) {
                     FailureReason.NotReachable, FailureReason.ControlDisabled ->
                         rxBus.send(EventShowDialog.Ok(title = rh.gs(app.aaps.core.ui.R.string.tsunami), message = rh.gs(prepared.reason.failTextResId())))
@@ -223,10 +239,9 @@ class TsunamiDialogViewModel @Inject constructor(
 
     /**
      * Build the OK-button batch from dialog state, mirroring the old submit():
-     * - insulin > 0 → a bolus (master caps it; never capped client-side).
-     * - duration > 0 → start Tsunami mode for that duration.
-     * - duration == 0 while Tsunami mode is active → cancel Tsunami mode instead (only if no separate
-     *   duration was set — matches the old "cancel on zero-duration bolus" branch).
+     * - insulin >= 0 → a bolus (if > 0).
+     * - duration >= 0 → start Tsunami mode if duration > 0.
+     * - duration == 0 while Tsunami mode is active → cancel Tsunami mode.
      */
     private fun buildMainActions(state: TsunamiDialogUiState): List<BatchAction> = buildList {
         val deliverableInsulin = Round.floorTo(state.insulin, state.bolusStep)

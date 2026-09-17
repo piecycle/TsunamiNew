@@ -57,6 +57,7 @@ import app.aaps.ui.compose.overview.chips.IobUiState
 import app.aaps.ui.compose.overview.graphs.BgInfoUiState
 import kotlinx.coroutines.flow.StateFlow
 import java.text.DecimalFormat
+import app.aaps.core.keys.R as KeysR
 import app.aaps.core.ui.R as CoreUiR
 
 @Composable
@@ -205,8 +206,12 @@ private fun TsunamiDialogContent(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    if (uiState.insulin > 0.0) {
+                    if (uiState.insulin > 0.0 && uiState.duration > 0.0) {
+                        Text(stringResource(CoreUiR.string.format_insulin_units, uiState.insulin) + " + " + stringResource(CoreUiR.string.format_mins, uiState.duration.toInt()))
+                    } else if (uiState.insulin > 0.0) {
                         Text(stringResource(CoreUiR.string.format_insulin_units, uiState.insulin))
+                    } else if (uiState.duration > 0.0) {
+                        Text(stringResource(CoreUiR.string.format_mins, uiState.duration.toInt()))
                     } else {
                         Text(stringResource(CoreUiR.string.ok))
                     }
@@ -225,7 +230,21 @@ private fun TsunamiDialogContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // --- Status Bar ---
-            DialogStatusBar(bgInfo = bgInfo, iob = iob, cob = cob)
+            val tsunami = uiState.activeTsunami
+            val remainingMinutes = tsunami?.let {
+                val end = it.end
+                ((end - System.currentTimeMillis()) / 60000).coerceAtLeast(0)
+            } ?: 0
+
+            DialogStatusBar(
+                bgInfo = bgInfo,
+                iob = iob,
+                cob = cob,
+                tsunamiInfo = if (uiState.isTsunamiActive)
+                    stringResource(CoreUiR.string.tsunami_active_time, remainingMinutes)
+                else
+                    stringResource(CoreUiR.string.tsunami_inactive)
+            )
 
             // --- Card 1: Insulin amount (pre-bolus) ---
             Card(
@@ -264,7 +283,7 @@ private fun TsunamiDialogContent(
                         onValueChange = onDurationChange,
                         valueRange = 0.0..uiState.maxDurationMinutes,
                         step = 30.0,
-                        unitLabelResId = CoreUiR.string.format_mins
+                        unitLabelResId = KeysR.string.units_min
                     )
                 }
             }

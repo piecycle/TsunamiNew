@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Palette
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.insulin.Insulin
 import app.aaps.core.interfaces.insulin.InsulinManager
+import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
@@ -47,9 +48,8 @@ class BuiltInSearchables @Inject constructor(
     private val rh: ResourceHelper,
     private val insulinManager: InsulinManager,
     private val insulin: Insulin,
-    private val config: Config
+    private val activePlugin: ActivePlugin
 ) : SearchableProvider {
-
     private fun hasNonU100Insulin(): Boolean =
         insulinManager.insulins.any { it.concentration != 1.0 } || insulin.iCfg.concentration != 1.0
 
@@ -274,19 +274,21 @@ class BuiltInSearchables @Inject constructor(
     /**
      * Treatment button visibility settings (accessible from Treatment bottom sheet)
      */
-    val treatmentButtons = PreferenceSubScreenDef(
-        key = "treatment_button_settings",
-        titleResId = app.aaps.core.ui.R.string.treatments,
-        items = listOf(
-            BooleanKey.OverviewShowCgmButton,
-            BooleanKey.OverviewShowCalibrationButton,
-            BooleanKey.OverviewShowTreatmentButton,
-            BooleanKey.OverviewShowInsulinButton,
-            BooleanKey.OverviewShowCarbsButton,
-            BooleanKey.OverviewShowWizardButton
-        ),
-        icon = IcBolus
-    )
+    val treatmentButtons: PreferenceSubScreenDef
+        get() = PreferenceSubScreenDef(
+            key = "treatment_button_settings",
+            titleResId = app.aaps.core.ui.R.string.treatments,
+            items = listOf(
+                BooleanKey.OverviewShowCgmButton,
+                BooleanKey.OverviewShowCalibrationButton,
+                BooleanKey.OverviewShowTreatmentButton,
+                BooleanKey.OverviewShowInsulinButton,
+                BooleanKey.OverviewShowTsunamiButton,
+                BooleanKey.OverviewShowCarbsButton,
+                BooleanKey.OverviewShowWizardButton
+            ),
+            icon = IcBolus
+        )
 
     /**
      * Wizard settings (accessible from Wizard dialog)

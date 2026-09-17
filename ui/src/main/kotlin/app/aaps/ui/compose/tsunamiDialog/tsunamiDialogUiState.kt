@@ -12,6 +12,7 @@ data class TsunamiDialogUiState(
 
     // Runtime status (refreshed on init / after commit)
     val isTsunamiActive: Boolean = false,
+    val activeTsunami: app.aaps.core.data.model.TSU? = null,
 
     // Config (set once during init)
     val maxInsulin: Double = 0.0,
@@ -26,4 +27,4 @@ data class TsunamiDialogUiState(
 val TsunamiDialogUiState.confirmEnabled: Boolean
     // Mirrors the old validateInputs()/submit() gate: something to confirm exists if there's a bolus,
     // a duration to start, or an active Tsunami to cancel via the OK button (duration == 0 + active).
-    get() = insulin > 0.0 || duration > 0.0 || isTsunamiActive
+    get() = insulin > 0.0 || duration > 0.0

@@ -72,6 +72,12 @@ interface VisibilityContext {
      */
     val isConcentrationEnabled: Boolean
         get() = false
+
+    /**
+     * Whether the active APS is Tsunami.
+     */
+    val isTsunamiActiveAPS: Boolean
+        get() = false
 }
 
 /**

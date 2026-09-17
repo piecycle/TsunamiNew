@@ -34,6 +34,7 @@ fun List<ConfirmationLine>.toAnnotatedString(primaryColor: Color): AnnotatedStri
     val loopSuspended = AapsTheme.elementColors.loopSuspended
     val loopDisabled = AapsTheme.elementColors.loopDisabled
     val loopDisconnected = AapsTheme.elementColors.loopDisconnected
+    val tsunami = AapsTheme.elementColors.tsunami
     fun color(role: ConfirmationRole): Color? = when (role) {
         ConfirmationRole.NORMAL            -> null
         ConfirmationRole.PRIMARY           -> primaryColor
@@ -44,6 +45,7 @@ fun List<ConfirmationLine>.toAnnotatedString(primaryColor: Color): AnnotatedStri
         ConfirmationRole.INFO              -> info
         ConfirmationRole.TEMP_TARGET       -> tempTarget
         ConfirmationRole.SCENE             -> scene
+        ConfirmationRole.TSUNAMI           -> tsunami
         ConfirmationRole.LOOP_CLOSED       -> loopClosed
         ConfirmationRole.LOOP_OPEN         -> loopOpen
         ConfirmationRole.LOOP_LGS          -> loopLgs

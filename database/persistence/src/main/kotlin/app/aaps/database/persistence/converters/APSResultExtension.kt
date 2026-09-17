@@ -24,7 +24,8 @@ private val rtJson = Json {
 fun app.aaps.database.entities.APSResult.fromDb(apsResultProvider: Provider<APSResult>): APSResult =
     when (algorithm) {
         app.aaps.database.entities.APSResult.Algorithm.AMA,
-        app.aaps.database.entities.APSResult.Algorithm.SMB      ->
+        app.aaps.database.entities.APSResult.Algorithm.SMB,
+        app.aaps.database.entities.APSResult.Algorithm.TSUNAMI ->
             apsResultProvider.get().with(rtJson.decodeFromString(this.resultJson)).also { result ->
                 result.date = this.timestamp
                 result.glucoseStatus = try {
@@ -61,7 +62,8 @@ fun app.aaps.database.entities.APSResult.fromDb(apsResultProvider: Provider<APSR
 fun APSResult.toDb(): app.aaps.database.entities.APSResult =
     when (algorithm) {
         APSResult.Algorithm.AMA,
-        APSResult.Algorithm.SMB      ->
+        APSResult.Algorithm.SMB,
+        APSResult.Algorithm.TSUNAMI ->
             app.aaps.database.entities.APSResult(
                 timestamp = this.date,
                 algorithm = this.algorithm.toDb(),
@@ -95,6 +97,7 @@ fun app.aaps.database.entities.APSResult.Algorithm.fromDb(): APSResult.Algorithm
         app.aaps.database.entities.APSResult.Algorithm.AMA      -> APSResult.Algorithm.AMA
         app.aaps.database.entities.APSResult.Algorithm.SMB      -> APSResult.Algorithm.SMB
         app.aaps.database.entities.APSResult.Algorithm.AUTO_ISF -> APSResult.Algorithm.AUTO_ISF
+        app.aaps.database.entities.APSResult.Algorithm.TSUNAMI  -> APSResult.Algorithm.TSUNAMI
         else                                                    -> error("Unsupported")
     }
 
@@ -103,5 +106,6 @@ fun APSResult.Algorithm.toDb(): app.aaps.database.entities.APSResult.Algorithm =
         APSResult.Algorithm.AMA      -> app.aaps.database.entities.APSResult.Algorithm.AMA
         APSResult.Algorithm.SMB      -> app.aaps.database.entities.APSResult.Algorithm.SMB
         APSResult.Algorithm.AUTO_ISF -> app.aaps.database.entities.APSResult.Algorithm.AUTO_ISF
+        APSResult.Algorithm.TSUNAMI  -> app.aaps.database.entities.APSResult.Algorithm.TSUNAMI
         else                         -> error("Unsupported")
     }

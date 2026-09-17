@@ -32,6 +32,7 @@ fun DialogStatusBar(
     bgInfo: BgInfoUiState,
     iob: IobUiState,
     cob: CobUiState,
+    tsunamiInfo: String? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -111,6 +112,26 @@ fun DialogStatusBar(
                     color = ElementType.CARBS.color(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+                Separator()
+            }
+
+            // Tsunami section
+            tsunamiInfo?.let {
+                val tsunamiLabel = stringResource(CoreUiR.string.tsunami_shortname) + ":"
+                val tsunamiValue = it.replace("$tsunamiLabel ", "")
+
+                Text(
+                    text = tsunamiLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+                Text(
+                    text = tsunamiValue,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ElementType.TSUNAMI.color(),
+                    maxLines = 1
                 )
             }
         }

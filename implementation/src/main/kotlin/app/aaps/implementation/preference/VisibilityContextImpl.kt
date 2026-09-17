@@ -86,4 +86,7 @@ class VisibilityContextImpl @Inject constructor(
 
     override val isConcentrationEnabled: Boolean
         get() = constraintsChecker.isConcentrationEnabled().value()
+
+    override val isTsunamiActiveAPS: Boolean
+        get() = activePlugin.activeAPS?.algorithm == app.aaps.core.interfaces.aps.APSResult.Algorithm.TSUNAMI
 }

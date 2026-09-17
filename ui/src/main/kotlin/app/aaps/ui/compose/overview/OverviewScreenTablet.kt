@@ -86,6 +86,7 @@ fun OverviewScreenTablet(
     val sensitivityUiState by chipsViewModel.sensitivityUiState.collectAsStateWithLifecycle()
     val iobUiState by chipsViewModel.iobUiState.collectAsStateWithLifecycle()
     val cobUiState by chipsViewModel.cobUiState.collectAsStateWithLifecycle()
+    val tsuUiState by chipsViewModel.tsuUiState.collectAsStateWithLifecycle()
     val statusState by statusViewModel.uiState.collectAsStateWithLifecycle()
 
     var statusExpanded by rememberSaveable { mutableStateOf(true) }
@@ -161,6 +162,7 @@ fun OverviewScreenTablet(
                             tbrState = tbrState,
                             iobUiState = iobUiState,
                             cobUiState = cobUiState,
+                            tsuUiState = tsuUiState,
                             sensitivityUiState = sensitivityUiState,
                             onNavigate = onNavigate,
                             onTbrChipClick = onTbrChipClick,

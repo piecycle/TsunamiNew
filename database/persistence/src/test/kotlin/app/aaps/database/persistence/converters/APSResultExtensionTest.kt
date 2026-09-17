@@ -43,10 +43,12 @@ internal class APSResultExtensionTest {
         assertThat(APSResult.Algorithm.AMA.toDb()).isEqualTo(DbAPSResult.Algorithm.AMA)
         assertThat(APSResult.Algorithm.SMB.toDb()).isEqualTo(DbAPSResult.Algorithm.SMB)
         assertThat(APSResult.Algorithm.AUTO_ISF.toDb()).isEqualTo(DbAPSResult.Algorithm.AUTO_ISF)
+        assertThat(APSResult.Algorithm.TSUNAMI.toDb()).isEqualTo(DbAPSResult.Algorithm.TSUNAMI)
 
         assertThat(DbAPSResult.Algorithm.AMA.fromDb()).isEqualTo(APSResult.Algorithm.AMA)
         assertThat(DbAPSResult.Algorithm.SMB.fromDb()).isEqualTo(APSResult.Algorithm.SMB)
         assertThat(DbAPSResult.Algorithm.AUTO_ISF.fromDb()).isEqualTo(APSResult.Algorithm.AUTO_ISF)
+        assertThat(DbAPSResult.Algorithm.TSUNAMI.fromDb()).isEqualTo(APSResult.Algorithm.TSUNAMI)
     }
 
     @Test

@@ -478,6 +478,7 @@ fun MainScreen(
             quickWizardItems = treatmentState.quickWizardItems,
             onNavigate = onNavigate,
             treatmentButtonsDef = treatmentButtonsDef,
+            showTsunami = treatmentState.showTsunami
         )
     }
 

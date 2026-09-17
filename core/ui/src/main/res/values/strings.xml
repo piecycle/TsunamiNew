@@ -1152,6 +1152,8 @@
     <string name="tsunami_shortname">TSU</string>
     <string name="tsunami_duration">Tsunami duration</string>
     <string name="cancel_tsunami">Cancel Tsunami mode.</string>
+    <string name="tsunami_active_time">TSU: %1$d min remaining</string>
+    <string name="tsunami_inactive">TSU: Inactive</string>
     <!-- Tsunami (for TranslatorImpl.kt) -->
     <string name="uel_tsunami">TSUNAMI</string>
     <string name="uel_tsunami_bolus">TSUNAMI+BOLUS</string>

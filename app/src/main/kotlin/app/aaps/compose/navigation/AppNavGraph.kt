@@ -104,6 +104,7 @@ import app.aaps.ui.compose.tempBasalDialog.TempBasalDialogScreen
 import app.aaps.ui.compose.tempTarget.TempTargetManagementScreen
 import app.aaps.ui.compose.tempTarget.TempTargetManagementViewModel
 import app.aaps.ui.compose.treatmentDialog.TreatmentDialogScreen
+import app.aaps.ui.compose.tsunamiDialog.TsunamiDialogScreen
 import app.aaps.ui.compose.treatments.TreatmentsScreen
 import app.aaps.ui.compose.treatments.viewmodels.TreatmentsViewModel
 import app.aaps.ui.compose.wizardDialog.WizardDialogScreen
@@ -302,6 +303,18 @@ fun NavGraphBuilder.appNavGraph(
     composable(route = AppRoute.InsulinDialog.route) {
         InsulinDialogScreen(
             insulinButtonsDef = builtInSearchables.insulinButtons,
+            bgInfoState = graphViewModel.bgInfoState,
+            iobUiState = chipsViewModel.iobUiState,
+            cobUiState = chipsViewModel.cobUiState,
+            onNavigateBack = { navController.safePopBackStack() },
+            onShowDeliveryError = { comment ->
+                onShowDeliveryError(comment, app.aaps.core.ui.R.string.treatmentdeliveryerror)
+            }
+        )
+    }
+
+    composable(route = AppRoute.TsunamiDialog.route) {
+        TsunamiDialogScreen(
             bgInfoState = graphViewModel.bgInfoState,
             iobUiState = chipsViewModel.iobUiState,
             cobUiState = chipsViewModel.cobUiState,
