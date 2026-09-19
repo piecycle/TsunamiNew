@@ -16,7 +16,6 @@ import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
@@ -146,209 +145,6 @@ class DetermineBasalTsunami @Inject constructor(
             rT.rate = suggestedRate
             return rT
         }
-    }
-
-    private fun calculateStdDev(glucoseValues: List<Double>): Double {
-        if (glucoseValues.size < 2) return 0.0
-        val mean = glucoseValues.average()
-        val variance = glucoseValues.sumOf { (it - mean).pow(2) } / glucoseValues.size
-        return kotlin.math.sqrt(variance)
-    }
-
-    private fun calculateAggressivenessFactor(
-        profile: OapsProfileTsunami,
-        glucoseStatus: GlucoseStatus,
-        iob_data: IobTotal,
-        recentGlucoseStdDev: Double,
-        recentGlucoseHistory: List<GlucoseStatus>,
-        rawGlucoseHistory: List<GlucoseStatus>,
-    ): Double {
-        val bg = glucoseStatus.glucose
-        val delta = glucoseStatus.delta
-        val shortAvgDelta = glucoseStatus.shortAvgDelta
-        val targetBg = profile.target_bg
-
-        // --- CRITICAL SAFETY OVERRIDE: POST-HYPOGLYCEMIA REBOUND ---
-        // Prevents aggressive dosing into a rise caused by treating a recent low.
-        val hypoThreshold = 75.0
-        val lookBackMinutes = 45
-        val wentLowRecently = recentGlucoseHistory.any {
-            it.glucose < hypoThreshold &&
-                (glucoseStatus.date - it.date) < lookBackMinutes * 60 * 1000
-        }
-
-        if (wentLowRecently && delta > 2) {
-            consoleError.add("Aggressiveness OVERRIDE: Post-Hypo Rebound Detected. Minimal aggression applied.")
-            return 0.1 // Return a fixed, minimal aggression value
-        }
-
-        // --- 1. TREND CONFIDENCE CALCULATION (with Acceleration & Breakout) ---
-        val trendStrength = (delta * 0.4) + (shortAvgDelta * 0.6)
-        val minTrendForAction = 2.0
-        val maxTrendForFullConfidence = 8.0
-        var trendConfidenceScore = ((trendStrength - minTrendForAction) / (maxTrendForFullConfidence - minTrendForAction))
-            .coerceIn(0.0, 1.0)
-
-        // Apply a significant bonus if the rise is a "breakout" from a stable flatline
-        val isFlatlineBreakout = recentGlucoseStdDev < 3.0 && delta > 4.0
-        if (isFlatlineBreakout) {
-            consoleError.add("Confidence Bonus: Flatline Breakout Detected!")
-            trendConfidenceScore = (trendConfidenceScore + 0.5).coerceAtMost(1.0)
-        }
-
-        // --- 2. BG SAFETY FACTOR (Sliding Window around Target) ---
-
-        // Configuration for the sliding window
-        val safetyFloorOffset = 15.0      // How many mg/dL below target the safety window starts.
-        val fullAggressionOffset = 40.0   // How many mg/dL above target the window ends.
-        val absoluteSafetyFloor = 90.0    // The absolute minimum BG for any aggression.
-
-        // Calculate the window's boundaries for the current target
-        val minBgForAction = max(targetBg - safetyFloorOffset, absoluteSafetyFloor)
-        val bgForFullSafetyClearance = targetBg + fullAggressionOffset
-
-        // Calculate the factor, ensuring no division by zero if boundaries are the same
-        val denominator = bgForFullSafetyClearance - minBgForAction
-        val bgSafetyFactor = if (denominator > 0) {
-            ((bg - minBgForAction) / denominator).coerceIn(0.0, 1.0)
-        } else {
-            // This case handles situations where the target is so low that the window collapses.
-            // If BG is above the floor, allow full aggression; otherwise, zero.
-            if (bg >= minBgForAction) 1.0 else 0.0
-        }
-
-        // --- 3. DYNAMIC USER INTENT FACTOR (Exponential Decay with 75-min Half-Life) ---
-        var userIntentFactor = 1.0 // Default to Wave mode (no boost)
-        val tsunamiModeActivationTime = profile.tsunamiModeActivationTime
-        if (tsunamiModeActivationTime != null) {
-            val minutesSinceActivation = (System.currentTimeMillis() - tsunamiModeActivationTime) / 60000.0
-            val maxBoost = 1.5
-            val baseLevel = 1.0
-            val boostRange = maxBoost - baseLevel
-            val halfLifeMinutes = 60.0
-
-            // Calculate the decay constant (lambda) from the half-life
-            val lambda = -Math.log(0.5) / halfLifeMinutes
-
-            // Calculate the current boost using the exponential decay formula
-            val remainingBoost = boostRange * exp(-lambda * minutesSinceActivation)
-            userIntentFactor = (baseLevel + remainingBoost).coerceIn(baseLevel, maxBoost)
-        }
-
-        // --- 4. CONTEXTUAL MODULATORS (IOB Headroom & Acceleration) ---
-        // IOB Headroom Factor: Gently reduces aggression as IOB nears its max.
-        // The point of this is to prevent automated rage-boluses, limiting potential damage at high IOBs.
-        val iobStartsReducingAggression = profile.max_iob * 0.5
-        val iobForMaxReduction = profile.max_iob * 1.2
-
-        val iobHeadroomDenominator = iobForMaxReduction - iobStartsReducingAggression
-        var iobHeadroomFactor = 1.0 // Default to a safe, neutral value (no reduction)
-
-        if (iobHeadroomDenominator > 0) { // Check for non-zero and positive denominator
-            val headroomReduction = ((iob_data.iob - iobStartsReducingAggression) / iobHeadroomDenominator)
-            iobHeadroomFactor = (1.0 - headroomReduction).coerceIn(0.6, 1.0) // Never reduces more than 40%
-        }
-
-        // acceleration Factor: Rewards trends that are actively accelerating.
-        var accelerationFactor = 1.0 // Default to no boost
-        // --- SAFE HISTORY HANDLING ---
-        // Safely access historical data. If history is insufficient,
-        // default to values that indicate a neutral or unknown trend.
-        val rawDelta = rawGlucoseHistory[0].delta
-        val previousDelta: Double
-        val rawPreviousDelta: Double
-        if (recentGlucoseHistory.size > 1) {
-            previousDelta = recentGlucoseHistory[1].delta
-            rawPreviousDelta = rawGlucoseHistory[1].delta
-        } else {
-            // If there's no second entry, we can't calculate acceleration.
-            // Assume a neutral previous delta, making acceleration zero.
-            previousDelta = delta
-            rawPreviousDelta = rawGlucoseHistory[0].delta
-        }
-        // GATE 1: The rate of change must be meaningful.
-        // Prevents boosting on tiny, flat-line noise.
-        val isDeltaSignificant = glucoseStatus.delta > 3.0 // TUNEABLE: e.g., 3 mg/dL/5min
-
-        if (isDeltaSignificant) {
-            val acceleration = delta - previousDelta
-            val rawAcceleration = rawDelta - rawPreviousDelta
-            // CONDITION: DETECT THE SUSPICIOUS TURNAROUND
-            if (previousDelta < 0) {
-                // This is the special case: the trend has just flipped from negative to positive.
-                // The calculated acceleration (e.g., 10 - (-5) = 15) is amplified and unreliable.
-                // INSTEAD, we use a more conservative proxy for this single cycle. Using the
-                // current delta itself provides a measure of the rise's strength without the
-                // amplification from the negative previousDelta.
-                val acceleration = glucoseStatus.delta
-                consoleError.add("Turnaround detected. Using dampened acceleration of ${round(acceleration, 1)} instead of amplified value.")
-
-                // We use a more conservative divisor here as an added safety measure.
-                // The system will react, but not with maximum force, until the rise is confirmed
-                // by a second consecutive positive delta on the next loop cycle.
-                accelerationFactor = (1.0 + (acceleration / 12.0).coerceIn(0.0, 0.30)) // Cap at 25% for this specific case
-
-            } else if (acceleration > 0) {
-                // NORMAL ACCELERATION: The trend is established and speeding up. Be fully aggressive.
-                val acceleration = delta - previousDelta
-                if (acceleration > 0) {
-                    consoleError.add("Sustained rise detected. Using full acceleration of ${round(acceleration, 1)}.")
-                    accelerationFactor = (1.0 + (acceleration / 8.0).coerceIn(0.0, 0.30))
-                }
-                //MP raw data is quicker to catch deceleration, so check for deceleration using raw data
-                //MP also check for deceleration using  recalculated (smoothed) data. If raw data deceleration was noise, this may lead to the deceleration code being triggered twice in a row. For reasons of caution, we will accept this.
-            } else if (rawAcceleration < 0 || acceleration < 0) {
-                val (previousDeltaDecelerating, deltaDecelerating) = when {
-                    rawAcceleration < 0 -> Pair(rawPreviousDelta, rawDelta)
-                    else -> Pair(previousDelta, delta)
-                }
-
-                // *** NEW "MOMENTUM RATIO" LOGIC ***
-                // The penalty is proportional to the loss of momentum.
-                // Safety Gate: Only apply penalty if the trend was significant to begin with.
-                if (previousDeltaDecelerating > 4.0) {
-                    // The momentum ratio directly reflects the proportion of the trend that remains.
-                    // A ratio of 0.6 means the rise has lost 40% of its momentum.
-                    val momentumRatio = deltaDecelerating / previousDeltaDecelerating
-
-                    // The factor is the momentum ratio itself, clamped for safety.
-                    // This directly ties the penalty to the proportional slowdown.
-                    accelerationFactor = momentumRatio.coerceIn(0.3, 1.0) // Max penalty of 70%
-                    if (rawAcceleration < 0) {
-                        consoleError.add("Raw data deceleration. (${round(deltaDecelerating, 0)}/${round(previousDeltaDecelerating, 0)} = ${round(momentumRatio, 2)})")
-                    } else {
-                        consoleError.add("Smoothed data deceleration. (${round(deltaDecelerating, 0)}/${round(previousDeltaDecelerating, 0)} = ${round(momentumRatio, 2)})")
-                    }
-                } else {
-                    // The trend was not strong enough to warrant a deceleration penalty.
-                    // We just remove any potential acceleration boost by setting factor to 1.0.
-                    accelerationFactor = 0.70
-                    consoleError.add(
-                        "Minor deceleration on a weak trend. Acceleration Factor: 0.70"
-                    )
-                }
-            }
-        }
-
-        // --- FINAL HOLISTIC CALCULATION ---
-        val finalAggressiveness =
-            trendConfidenceScore *
-                bgSafetyFactor *
-                userIntentFactor *
-                iobHeadroomFactor *
-                accelerationFactor
-
-        // --- Reporting for debugging and transparency ---
-        consoleError.add("--- Aggressiveness Calculation ---")
-        consoleError.add("Trend Confidence: ${round(trendConfidenceScore, 2)}")
-        consoleError.add("BG Safety: ${round(bgSafetyFactor, 2)}")
-        consoleError.add("User Intent (Tsunami): ${round(userIntentFactor, 2)}")
-        consoleError.add("IOB Headroom: ${round(iobHeadroomFactor, 2)}")
-        consoleError.add("Acceleration Factor: ${round(accelerationFactor, 2)}")
-        consoleError.add("Final Aggressiveness Factor: ${round(finalAggressiveness.coerceIn(0.0, 1.0), 2)}")
-        consoleError.add("------------------------------------")
-
-        return finalAggressiveness.coerceIn(0.0, 1.0)
     }
 
     fun determine_basal(
@@ -525,12 +321,6 @@ class DetermineBasalTsunami @Inject constructor(
         // Variable definitions
         //var activityController = false //MP Tsunami main switch; controls whether Tsunami (true) or oref1 (false) is used
 
-        // --- PREPARE INPUTS FOR THE NEW AGGRESSIVENESS MODEL ---
-        // For StdDev, use the history *before* the current value to measure the prior flatline.
-        val recentGlucoseValuesForStdDev = recentGlucoseHistory.drop(1).map { it.glucose }
-        val recentGlucoseStdDev = calculateStdDev(recentGlucoseValuesForStdDev)
-        val finalAggressiveness = calculateAggressivenessFactor(profile, glucose_status, iob_data, recentGlucoseStdDev, recentGlucoseHistory, rawGlucoseHistory)
-
         /**
          * Analyzes glucose acceleration patterns to classify metabolic state.
          *
@@ -625,85 +415,25 @@ class DetermineBasalTsunami @Inject constructor(
         val actTarget = deltaGross / sens * deltaReductionPCT //MP 5-min-insulin activity at which delta should be at the desired target value (if delta remains unchanged)
         var actMissing = 0.0
 
-        /*
-        The code below is experimental and can be implemented later.
-        It uses BG acceleration to project a future delta and react to that instead of relying on current delta values.
-
-        /**
-         * Strategy #2 (Revised): Calculates a "Trend Certainty" factor from 0.0 to 1.0.
-         * This factor is now based *only* on the stability (consistency) of the trend,
-         * as the noise value is not reliably available.
-         *
-         * @param glucoseStatus The current glucose data object.
-         * @return A certainty score between 0.0 (unstable) and 1.0 (very stable).
-         */
-        private fun calculateTrendCertainty(glucoseStatus: GlucoseStatus): Double {
-            // We compare the immediate delta to the short-term average delta.
-            // A small difference indicates a stable, predictable trend.
-            val stabilityDifference = kotlin.math.abs(glucoseStatus.delta - glucoseStatus.shortAvgDelta)
-
-            // Normalize the score. If the difference is 5 mg/dL or more, we consider the
-            // trend unstable and certainty approaches 0. A perfect match is 1.0.
-            val certainty = (1.0 - (stabilityDifference / 5.0)).coerceIn(0.0, 1.0)
-
-            return round(certainty, 2)
-        }
-
-        /**
-         * Strategy #1: Projects a future BG delta based on current velocity and acceleration.
-         * (This function does not need to change).
-         */
-        private fun projectFutureDelta(
-            glucoseStatus: GlucoseStatus,
-            previousDelta: Double,
-            trendCertainty: Double,
-            consoleError: MutableList<String>
-        ): Double {
-            val PROJECTION_CYCLES = 3.0
-            val acceleration = glucoseStatus.delta - previousDelta
-            val dampenedAccelerationComponent = acceleration * PROJECTION_CYCLES * trendCertainty
-            val projectedDelta = glucoseStatus.delta + dampenedAccelerationComponent
-
-            consoleError.add("-------------")
-            consoleError.add("Delta Projection Engine")
-            consoleError.add("Current Delta: ${glucose_status.delta}, Prev Delta: $previousDelta")
-            consoleError.add("-> Acceleration: ${round(acceleration, 1)} mg/dL/5min^2")
-            consoleError.add("-> Trend Certainty: $trendCertainty")
-            consoleError.add("-> Projected Delta (in 15m): ${round(projectedDelta, 1)}")
-            consoleError.add("-------------")
-
-            return projectedDelta
-        }
-
-        // [MODIFIED SECTION START]
-
-        // --- 1. Get inputs for the new projection engine ---
-        // Safely get the previous delta. Fallback to current delta for a safe (zero) acceleration.
-        val previousDelta = recentGlucoseHistory.getOrNull(1)?.delta ?: glucose_status.delta
-
-        // --- 2. Calculate trend certainty and the projected future delta ---
-        val trendCertainty = calculateTrendCertainty(glucose_status)
-        val projectedDelta = projectFutureDelta(glucose_status, previousDelta, trendCertainty, consoleError)
-
-        // --- 3. Use the NEW projectedDelta in the core Tsunami calculation ---
-        //MP Calculate absolute activity to neutralise delta
-        val actCurr = profile.sensorLagActivity
-        val actFuture = profile.futureActivity
-
-        // This is the key change: we now fight the PROJECTED rise, not the current one.
-        val deltaGross = round((projectedDelta + actCurr * sens).coerceIn(0.0, 35.0), 1)
-
-        val actTarget = deltaGross / sens * deltaReductionPCT
-        var actMissing = 0.0
-
-        // [MODIFIED SECTION END]
-        */
-
-
+        // MP Safety module for Tsunami and Wave: hard BG floor, BG risk, post-hypo lockout and rise legitimacy
+        val tsunamiSafety = TsunamiSafety.evaluate(
+            bg = bg,
+            delta = glucose_status.delta,
+            grossDelta = deltaGross,
+            targetBg = target_bg,
+            iob = iob_data.iob,
+            maxIob = max_iob,
+            history = recentGlucoseHistory,
+            rawHistory = rawGlucoseHistory,
+            nowMs = glucose_status.date,
+            modeEndTimeMs = profile.tsunamiModeEndTime
+        )
+        val safetyAllowance = tsunamiSafety.allowance
+        if (tsunamiModeID > 0) consoleError.addAll(tsunamiSafety.log)
 
         // MP Early-stage decision between oref1 and tsunami loop algorithm (skip calculations if basic conditions aren't met)
         var activityController = false
-        if (glucose_status.delta >= 0 && /*bg >= target_bg &&*/ iob_data.iob > 0.1 && actCurr > 0.0 && tsunamiModeID > 0) {
+        if (glucose_status.delta >= 0 && /*bg >= target_bg &&*/ iob_data.iob > 0.1 && actCurr > 0.0 && tsunamiModeID > 0 && !tsunamiSafety.blocked) {
             //MP Wave active hours check & wave enabled by user check have been completed in TsunamiPlugin.kt
             activityController = true
         }
@@ -773,7 +503,6 @@ class DetermineBasalTsunami @Inject constructor(
 
             tsuInsReq = round(tsuInsReq, 2)
             insulinReqPCT = round(profile.insulinReqPCT, 3) //MP Fetch insulinReqPCT from profile and modify it in dependence of previous delta values. Overrides default insulinReqPCT value of 0.5 used by oref1
-            SMBcap = round(SMBcap * finalAggressiveness, 2)
 
             //MP Reporting messages
             if (tsunamiModeID == 2) {
@@ -794,7 +523,7 @@ class DetermineBasalTsunami @Inject constructor(
             consoleError.add("net delta: " + glucose_status.delta)
             consoleError.add("gross delta: $deltaGross")
             consoleError.add("-------------")
-            consoleError.add("aggressiveness: " + round(finalAggressiveness, 2))
+            consoleError.add("safety allowance: " + round(safetyAllowance, 2))
             consoleError.add("insulinReqPCT_live: $insulinReqPCT")
             consoleError.add("SMBcap_live: $SMBcap")
             consoleError.add("tsuInsReq: $tsuInsReq")
@@ -1606,7 +1335,7 @@ class DetermineBasalTsunami @Inject constructor(
             //console.error(minPredBG,eventualBG);
             //MP Switch between Tsunami/Wave and oref1 insulin dosing depending on activityController; Dose will be adjusted by insulinReqPCT further down
             var insulinReq =
-                if (activityController) tsuInsReq
+                if (activityController) round(tsuInsReq * safetyAllowance, 2) //MP Safety module limits the whole insulin requirement (SMB and temp basal)
                 else if (dynIsfMode) round((min(minPredBG, eventualBG) - target_bg) / future_sens, 2)
                 else round((min(minPredBG, eventualBG) - target_bg) / sens, 2)
 
@@ -1678,7 +1407,7 @@ class DetermineBasalTsunami @Inject constructor(
                     rT.reason.append("net delta: " + glucose_status.delta)
                     rT.reason.append("; gross delta: $deltaGross")
                     rT.reason.append("; ###")
-                    rT.reason.append(" aggressiveness: " + round(finalAggressiveness, 2))
+                    rT.reason.append(" safety allowance: " + round(safetyAllowance, 2))
                     rT.reason.append("; insulinReqPCT_live: $insulinReqPCT")
                     rT.reason.append("; SMBcap_live: $SMBcap")
                     rT.reason.append("; tsuInsReq: $tsuInsReq")

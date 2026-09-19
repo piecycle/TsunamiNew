@@ -70,5 +70,6 @@ data class OapsProfileTsunami(
     var sensorLagActivity: Double,
     var historicActivity: Double,
     var currentActivity: Double,
-    var lastBolus: Double
+    var lastBolus: Double,
+    val tsunamiModeEndTime: Long? = null
 )

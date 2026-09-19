@@ -285,7 +285,8 @@ open class TsunamiPlugin @Inject constructor(
         aapsLogger.debug(LTag.APS, "invoke from $initiator tempBasalFallback: $tempBasalFallback")
         lastAPSResult = null
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
-        val recentGlucoseHistory = glucoseStatusCalculatorTsunami.recentGlucoseHistory(false)
+        // Long window (2.5 h) so the safety module can see recent lows; raw history only needs the short window for deceleration detection
+        val recentGlucoseHistory = glucoseStatusCalculatorTsunami.recentGlucoseHistory(false, 150)
         val rawGlucoseHistory = glucoseStatusCalculatorTsunami.recentGlucoseHistory(true)
         val profile = profileFunction.getProfile()
         val pump = activePlugin.activePump
@@ -431,7 +432,9 @@ open class TsunamiPlugin @Inject constructor(
         } else {
             0 //MP Tsunami inactive and conditions for wave are not met --> use oref1
         }
-        val tsunamiModeActivationTime = persistenceLayer.getTsunamiActiveAt(now)?.timestamp
+        val activeTsunami = persistenceLayer.getTsunamiActiveAt(now)
+        val tsunamiModeActivationTime = activeTsunami?.timestamp
+        val tsunamiModeEndTime = activeTsunami?.let { it.timestamp + it.duration }
         // Set mode specific variables to be relayed into DetermineBasalTsunami.kt
         var SMBcap : Double = 0.0
         var insulinReqPCT : Double = 0.0
@@ -554,6 +557,7 @@ open class TsunamiPlugin @Inject constructor(
             TDD = dynIsfResult.tdd ?: 0.0,
             tsunamiModeID = tsunamiModeID,
             tsunamiModeActivationTime = tsunamiModeActivationTime,
+            tsunamiModeEndTime = tsunamiModeEndTime,
             peakTime = activityPredTimePK.toDouble(),
             PDmodel = PDmodel,
             insConc = insulin.iCfg.concentration,

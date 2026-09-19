@@ -68,17 +68,19 @@ class GlucoseStatusCalculatorTsunami @Inject constructor(
     }
 
     /**
-     * Fetches the last 60 minutes of glucose history, ensuring every point in the returned
+     * Fetches the last [windowMinutes] minutes of glucose history, ensuring every point in the returned
      * list has a correctly calculated delta based on real subsequent data.
      *
      * This is achieved by fetching a slightly larger data window and using the extra data
      * solely for calculation, ensuring no artificial 'zero delta' points are created.
      * In case data points are missing, delta values are interpolated.
      *
-     * @return A List<GlucoseStatus> containing up to 60 minutes of fully processed historical data,
+     * @param raw Use raw sensor values instead of recalculated (smoothed) values.
+     * @param windowMinutes Length of the history window in minutes.
+     * @return A List<GlucoseStatus> containing up to [windowMinutes] minutes of fully processed historical data,
      *         or an empty list if the source is unavailable or insufficient.
      */
-    fun recentGlucoseHistory(raw: Boolean): List<GlucoseStatus> {
+    fun recentGlucoseHistory(raw: Boolean, windowMinutes: Int = 60): List<GlucoseStatus> {
         val data = iobCobCalculator.ads.getBucketedDataTableCopy().orEmpty()
             .filter { if (raw) it.value > 39 else it.recalculated > 39 }
         // We need at least two data points to calculate any delta.
@@ -87,17 +89,17 @@ class GlucoseStatusCalculatorTsunami @Inject constructor(
             return emptyList()
         }
 
-        val sixtyMinutesAgoTimestamp = dateUtil.now() - 60 * 60 * 1000L
+        val windowStartTimestamp = dateUtil.now() - windowMinutes * 60 * 1000L
 
-        // Step 1: Find the boundary. We need all points within the 60-minute window,
+        // Step 1: Find the boundary. We need all points within the window,
         // PLUS exactly one more point just outside of it to calculate the last delta.
-        val firstOlderIndex = data.indexOfFirst { it.timestamp < sixtyMinutesAgoTimestamp }
+        val firstOlderIndex = data.indexOfFirst { it.timestamp < windowStartTimestamp }
 
         val dataToProcess = if (firstOlderIndex == -1) {
-            // All available data is within the last 60 minutes.
+            // All available data is within the window.
             data
         } else {
-            // Get the sublist that includes our 60-minute window AND the next point.
+            // Get the sublist that includes our window AND the next point.
             data.subList(0, firstOlderIndex + 1)
         }
 
@@ -146,7 +148,7 @@ class GlucoseStatusCalculatorTsunami @Inject constructor(
                 )
             }
 
-        aapsLogger.debug(LTag.GLUCOSE, "recentGlucoseHistory: Processed ${history.size} records for the last 60 minutes with accurate deltas.")
+        aapsLogger.debug(LTag.GLUCOSE, "recentGlucoseHistory: Processed ${history.size} records for the last $windowMinutes minutes with accurate deltas.")
 
         return history
     }
