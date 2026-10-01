@@ -3,6 +3,7 @@
     <string name="label_watchface_circle">AAPS(圆形)</string>
     <string name="label_watchface_digital_style">AAPS(数字风格)</string>
     <string name="label_watchface_custom">AAPS（自定义）</string>
+    <string name="label_watchface_custom_ambient" comment="Name of the data source that draws the Custom watch face without seconds, for the always-on display. Shown in the watch's complication list.">AAPS（自定义）常亮</string>
     <string name="label_actions_tile">手动操作</string>
     <string name="label_temp_target_tile">临时目标</string>
     <string name="label_quick_wizard_tile">快速向导</string>
@@ -61,6 +62,10 @@
     <string name="pref_single_target">单一目标</string>
     <string name="pref_wizard_percentage">计算百分比</string>
     <string name="pref_complication_tap_action">折叠Tap操作</string>
+    <string name="pref_complication_bg_graph_hours">血糖图表时间范围</string>
+    <string name="duration_1_hour">1 小时</string>
+    <string name="duration_3_hours">3 小时</string>
+    <string name="duration_6_hours">6 小时</string>
     <string name="pref_unicode_in_complications">折叠中的代码</string>
     <string name="pref_version">版本</string>
     <string name="pref_moreWatchfaceSettings">更多手表表盘设置</string>
@@ -79,6 +84,11 @@
     <string name="menu_bg_graph">血糖图表</string>
     <string name="menu_resync">再次同步</string>
     <string name="menu_prime_fill">充盈/输注</string>
+    <string name="menu_install_watchface">安装表盘</string>
+    <string name="menu_installing_watchface">正在安装表盘…</string>
+    <string name="watchface_installed_active">表盘已安装并设为活动状态</string>
+    <string name="watchface_installed_select">表盘已安装，请在表盘选择器中选择它</string>
+    <string name="watchface_install_failed">表盘安装失败</string>
     <string name="menu_none">无</string>
     <string name="menu_default">默认 </string>
     <string name="menu_menu">菜单</string>
@@ -98,6 +108,7 @@
     <string name="action_high_unit" comment="In temp target menu, higher value from range">高[%s]</string>
     <string name="action_carbs">碳水</string>
     <string name="action_carbs_gram">碳水化合物[g]</string>
+    <string name="carbs_removal_cob_limit" comment="Shown under the carbs input when removing carbs (a negative value). %1$d = grams of carbs currently on board, the maximum removable. Example: Max removal: 30 g (COB)">最大移除量: %1$d g (COB)</string>
     <string name="action_ecarbs">碳水化合物</string>
     <string name="action_percentage">百分比\n[%]</string>
     <string name="action_start_minutes">开始\n[分钟]</string>
@@ -149,6 +160,21 @@
     <string name="pref_simplify_ui">简化界面</string>
     <string name="pref_vibrate_hourly">按小时振动</string>
     <string name="pref_show_weeknumber">显示星期几</string>
+    <string name="pref_complication_1">小工具 1</string>
+    <string name="pref_complication_2">小工具 2</string>
+    <string name="pref_complication_3">小工具 3</string>
+    <string name="pref_complication_4">小工具 4</string>
+    <string name="pref_complication_5">小工具 5</string>
+    <string name="complication_summary_none">点击选择数据源</string>
+    <string name="pref_complication_type_priority">小工具类型优先级</string>
+    <string name="pref_complication_type_priority_all">默认所有槽位</string>
+    <string name="pref_complication_type_priority_warning" comment="Shown at the top of the complication type priority screen. Explains that a change only takes effect when the data source actually changes, so re-picking the same one does nothing.">此处的更改在下次选择数据源时生效。再次选择同一数据源无效：请先选择另一个数据源，再选回您想要的那个。</string>
+    <string name="complication_type_priority_value">数值或仪表</string>
+    <string name="complication_type_priority_text">文本</string>
+    <string name="complication_type_priority_icon">图标</string>
+    <string name="complication_type_priority_use_default">使用默认</string>
+    <string name="cwf_complication_layout">小工具布局</string>
+    <string name="cwf_complication_layout_description">小工具的位置和大小，取自所加载的自定义表盘。</string>
     <string name="pref_include_external">在模板中包含外部视图</string>
     <string name="pref_switch_external">在表盘中切换外部数据</string>
     <string name="custom_pref_show_seconds">显示秒</string>
@@ -204,6 +230,12 @@
     <string name="tile_action_2">动作 2</string>
     <string name="tile_action_3">动作 3</string>
     <string name="tile_action_4">动作 4</string>
+    <string name="tile_scene_1">情景 1</string>
+    <string name="tile_scene_2">情景 2</string>
+    <string name="tile_scene_3">情景 3</string>
+    <string name="tile_scene_4">情景 4</string>
+    <string name="tile_scene_auto">自动</string>
+    <string name="tile_scene_unavailable">不可用</string>
     <string name="datalayer_notification_title">数据层前台服务</string>
     <string name="datalayer_notification_text">AAPS 正在前台运行。要隐藏通知，请前往“开发者选项”&gt;“应用通知”&gt;“允许的手表应用”，选择 AAPS，然后关闭“数据层前台服务通道”通知。</string>
     <string name="on">开</string>
@@ -214,6 +246,13 @@
     <string name="complication_blood_glucose_large">血糖（大）</string>
     <string name="complication_blood_glucose_ext1">血糖 Ext1</string>
     <string name="complication_blood_glucose_ext2">血糖 Ext2</string>
+    <string name="complication_bg_graph">血糖图表</string>
+    <string name="complication_cwf_image">自定义表盘</string>
+    <string name="complication_cwf_ambient_bg">自定义表盘息屏血糖</string>
+    <string name="complication_cwf_ambient_status">自定义表盘息屏状态</string>
+    <string name="complication_cwf_ambient_cob_iob" comment="%1$s=carbs on board, unit included, for example 12g. %2$s=insulin on board, unit included, for example 1.19U. Shown on one line in ambient mode.">%1$s   %2$s</string>
+    <string name="complication_cwf_lower">自定义表盘背景</string>
+    <string name="complication_cwf_upper">自定义表盘时钟</string>
     <string name="complication_br_cob_iob">BR, CoB &amp; IoB</string>
     <string name="complication_br_cob_iob_ext1">BR, CoB &amp; IoB Ext1</string>
     <string name="complication_br_cob_iob_ext2">BR, CoB &amp; IoB Ext2</string>
@@ -227,6 +266,8 @@
     <string name="complication_iob_icon">IoB 图标</string>
     <string name="complication_iob_detailed">IoB 详情</string>
     <string name="complication_uploader_phone_battery">上传器/手机电池</string>
+    <string name="running_mode_resume">恢复闭环</string>
+    <string name="running_mode_reconnect">重新连接泵</string>
     <string name="label_running_mode_title">运行模式</string>
     <string name="label_bg_graph_tile">血糖图表</string>
     <string name="tile_tap_action">点击操作</string>
@@ -237,7 +278,7 @@
     <string name="action_running_mode_selected">已请求运行模式</string>
     <string name="title_activity_disconnect_pump">断开泵连接</string>
     <string name="title_activity_suspend_loop">暂停闭环</string>
-    <string name="wizard_carbs_format">%1$d 克碳水化合物</string>
+    <string name="wizard_carbs_short" comment="%1$d=grams. Example: 30 g">%1$d g</string>
     <string name="insulin_unit_short">U</string>
     <string name="quick_wizard_tile_carbs" comment="QuickWizard tile sub-label, carbs amount. %1$d=grams. Example: 30 g">%1$d g</string>
     <string name="quick_wizard_tile_insulin" comment="QuickWizard tile sub-label, fixed insulin amount. %1$.2f=units. Example: 1.50 U">%1$.2f U</string>
@@ -246,10 +287,9 @@
     <string name="contacting_master_unknown">状态未知 - 请检查手机</string>
     <string name="tile_settings">卡片设定</string>
     <string name="loop_status_error">加载状态失败</string>
-    <string name="loop_status_tempt_duration">%1$d min (%2$s)</string>
-    <string name="loop_status_tbr_duration">%1$d min</string>
+    <string name="loop_status_duration_until" comment="%1$s=formatted duration e.g. 2 h 5 min, %2$s=end time. Example: 2 h 5 min (14:35)">%1$s (%2$s)</string>
     <string name="loop_status_tbr_rate">%1$.2f U/h (%2$d%%)</string>
-    <string name="loop_status_tbr_duration_remaining">剩余 %1$d 分</string>
+    <string name="loop_status_duration_remaining" comment="%1$s=formatted duration e.g. 2 h 5 min. Example: 2 h 5 min remaining">剩余 %1$s</string>
     <string name="loop_status_tbr_continues">临时基础率持续中</string>
     <string name="loop_status_tbr_cancel">设定正常基础率</string>
     <string name="loop_status_smb">%1$.2f U</string>
@@ -293,9 +333,10 @@
     <string name="wizard_result_cob">COB (%1$.1f g)</string>
     <string name="wizard_result_carbs">碳水 (%1$d g)</string>
     <string name="wizard_result_subtotal">小计</string>
+    <string name="wizard_result_correction">修正</string>
     <string name="wizard_result_total">总计</string>
     <string name="wizard_insulin_format">%1$s U</string>
     <string name="wizard_result_correction_percentage">%1$d%%</string>
-    <string name="wizard_carbs_with_time">%1$d g 碳水 (%2$s 分钟)</string>
-    <string name="wizard_result_ecarbs">延长碳水: %1$d g / %2$dh (+%3$d min)</string>
+    <string name="wizard_carbs_with_time" comment="%1$d=grams, %2$s=signed minute offset e.g. +20 or -5. Example: 30 g (+20 min)">%1$d g (%2$s min)</string>
+    <string name="wizard_result_ecarbs" comment="%1$d=grams, %2$d=duration hours, %3$d=delay minutes. Example: 16 g / 2 h (+90 min)">%1$d g / %2$d h (+%3$d min)</string>
 </resources>

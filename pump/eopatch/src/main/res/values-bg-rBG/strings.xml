@@ -13,6 +13,7 @@
     <string name="eopatch_base_basal_rate">Базова базална стойност</string>
     <string name="eopatch_temp_basal_rate">Временна базална стойност</string>
     <string name="invalid_basal_rate">Базалната стойност на профила е по-малка от 0,05 Е/час. EOPatch има минимална инжекционна единица от 0,05U. Моля, опитайте отново, след като зададете профила на повече от тази стойност.</string>
+    <string name="no_profile_selected_try_again">Няма избран профил. Моля, изберете профил и опитайте отново.</string>
     <string name="symbol_day">ден</string>
     <string name="symbol_plus">+</string>
     <string name="symbol_minus">-</string>
@@ -92,7 +93,4 @@
     <string name="wizard_exit_deactivation_warning">Изход от съветника? Помпата може да остане активна и да пуска инсулин.</string>
     <string name="patch_force_reset">Форирано нулиране</string>
     <string name="patch_force_reset_confirm">Това ще изчисти статуса на пача локално и без да изпрати команда до помпата. Използвай само ако нормалната деактивация е невъзможна. Помпата ще доставя инсулин докато не свърши батерията или е ръчно изключена.</string>
-    <!-- Permission rationales -->
-    <string name="permission_exact_alarm_title">Точни аларми</string>
-    <string name="permission_exact_alarm_description">Нуждая се от разрешение да пускам точни аларми за управление на пачовете</string>
 </resources>

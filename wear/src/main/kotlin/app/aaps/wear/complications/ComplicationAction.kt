@@ -47,6 +47,12 @@ enum class ComplicationAction {
     STATUS,
 
     /**
+     * Opens the loop status activity directly.
+     * Shows details of the most recent loop run.
+     */
+    LOOP_STATUS,
+
+    /**
      * Opens the temp target entry dialog.
      */
     TEMP_TARGET,
@@ -56,6 +62,12 @@ enum class ComplicationAction {
      * Shows 3h (default) BG history with predictions; tap cycles the window up to 8h.
      */
     BG_GRAPH,
+
+    /**
+     * Opens the running mode picker.
+     * Allows a quick change of the running mode (open/closed loop, suspend, disconnect...).
+     */
+    RUNNING_MODE,
 
     /**
      * Opens warning dialog about watch-phone sync issues.

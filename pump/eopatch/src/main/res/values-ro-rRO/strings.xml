@@ -13,6 +13,7 @@
     <string name="eopatch_base_basal_rate">Rată bazală implicită</string>
     <string name="eopatch_temp_basal_rate">Rată bazală temporară</string>
     <string name="invalid_basal_rate">Bazala profilului este mai mică de 0,05 U/oră. EOPatch are un pas minim de injectare de 0,05U. Vă rugăm să încercați din nou după ce ați setat profilul la mai mult decât pasul minim de injectare.</string>
+    <string name="no_profile_selected_try_again">Niciun profil selectat. Vă rugăm să selectați un profil și să încercați din nou.</string>
     <string name="symbol_day">zi</string>
     <string name="symbol_plus">+</string>
     <string name="symbol_minus">-</string>
@@ -93,7 +94,4 @@ prin apăsarea manuală a portului de oprire a alarmei de pe plasture așa cum s
     <string name="wizard_exit_deactivation_warning">Ieșiți din asistentul de dezactivare? Plasturele poate rămâne activ și ar putea continua să administreze insulină.</string>
     <string name="patch_force_reset">Resetare forțată</string>
     <string name="patch_force_reset_confirm">Aceasta va curăța starea locală a plasturelui fără a trimite comenzi în plasture. Utilizați numai dacă dezactivarea normală eșuează. Plasturele va continua să livreze până când bateria nu mai este descărcată sau este imediat oprită.</string>
-    <!-- Permission rationales -->
-    <string name="permission_exact_alarm_title">Alarme exacte</string>
-    <string name="permission_exact_alarm_description">Aplicația are nevoie de permisiunea de a programa alarmele exacte pentru gestionarea plasturelui</string>
 </resources>

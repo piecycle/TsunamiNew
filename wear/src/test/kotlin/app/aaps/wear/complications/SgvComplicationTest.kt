@@ -12,12 +12,6 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Covers [SgvComplication] and the shared [ModernBaseComplicationProviderService] logic it inherits:
- * [getPreviewData]/[getPreviewComplicationData] (sample data + tap intent → build), the
- * no-sync/outdated fallbacks and the action/name accessors. Built via [Robolectric] so a Context is
- * attached without running onCreate's Dagger injection; the `@Inject` fields are set directly.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 internal class SgvComplicationTest {
@@ -61,8 +55,8 @@ internal class SgvComplicationTest {
     }
 
     @Test
-    fun `tapping the SGV complication opens the bg graph`() {
-        assertThat(sut().getComplicationAction()).isEqualTo(ComplicationAction.BG_GRAPH)
+    fun `tapping the SGV complication opens loop status`() {
+        assertThat(sut().getComplicationAction()).isEqualTo(ComplicationAction.LOOP_STATUS)
     }
 
     @Test

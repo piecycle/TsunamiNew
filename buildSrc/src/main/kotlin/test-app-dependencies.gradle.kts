@@ -22,16 +22,16 @@ dependencies {
     androidTestImplementationFromCatalog("com-google-truth")
 }
 
+// See the same block in `test-module-dependencies` for why CI drops the passing tests' stdout.
+val showTestStandardOut = !providers.environmentVariable("CI").isPresent
+
 tasks.withType<Test> {
-    // use to display stdout in travis
     testLogging {
         // set options for log level LIFECYCLE
-        events = setOf(
-            TestLogEvent.FAILED,
-            //TestLogEvent.STARTED,
-            TestLogEvent.SKIPPED,
-            TestLogEvent.STANDARD_OUT
-        )
+        events = if (showTestStandardOut)
+            setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.STANDARD_OUT)
+        else
+            setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
         exceptionFormat = TestExceptionFormat.FULL
         useJUnitPlatform()
     }
@@ -39,7 +39,15 @@ tasks.withType<Test> {
 
 tasks.withType<Test>().configureEach {
     failOnNoDiscoveredTests = false
+    // CI runs the unit suite alongside three emulators on one self-hosted runner. Bound each forked test
+    // JVM's HEAP so the suite can't oversubscribe MEMORY: without maxHeapSize every fork defaults to ~25%
+    // of machine RAM, and that pressure (stacked on the 8g Gradle + 2g Kotlin daemons) knocked emulators
+    // offline mid-instrumentation. Do NOT also cut maxParallelForks: CPU is already isolated by taskset core
+    // pinning in CI, and fewer forks pack more tests per JVM, which surfaces cross-test coroutine-leak /
+    // timing flakes (UncaughtExceptionsBeforeTest) that stay dormant at the default fork count. Cap heap,
+    // keep the fork count.
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    maxHeapSize = "1536m"
 }
 
 android {
