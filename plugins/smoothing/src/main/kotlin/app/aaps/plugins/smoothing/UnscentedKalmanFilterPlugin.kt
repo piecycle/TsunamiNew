@@ -688,8 +688,8 @@ class UnscentedKalmanFilterPlugin @Inject constructor(
             val dt = (data[i].timestamp - data[i + 1].timestamp) / millisPerMinute
 
             // Handle minor gaps within the segment.
+            // Rate decay for the gap is applied once, inside predict() below (previously dampening was also applied here, but this resulted in double-dampening)
             if (dt > minorGapThreshold && dt <= majorGapThreshold) {
-                x[1] *= rateDamp(dt)
                 aapsLogger.debug(
                     LTag.GLUCOSE,
                     "UKF: Bridging ${String.format(Locale.US, "%.1f", dt)} min gap within segment"
