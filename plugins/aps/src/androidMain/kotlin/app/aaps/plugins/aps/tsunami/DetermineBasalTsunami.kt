@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.aps.Predictions
 import app.aaps.core.interfaces.aps.RT
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.plugins.aps.tsunami.TsunamiSafety.ACTIVITY_CONTROL_MAX_DELTA
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -435,14 +436,20 @@ class DetermineBasalTsunami(
 
         // MP Early-stage decision between oref1 and tsunami loop algorithm (skip calculations if basic conditions aren't met)
         var activityController = false
-        if (glucose_status.delta >= 0 && /*bg >= target_bg &&*/ iob_data.iob > 0.1 && actCurr > 0.0 && tsunamiModeID > 0 && !tsunamiSafety.blocked) {
+        val waveBelowTarget = tsunamiModeID == 1 && bg < target_bg //MP Wave does not dose below target (temp target included); oref1 handles a small rise up to target
+        if (glucose_status.delta >= 0 && iob_data.iob > 0.1 && actCurr > 0.0 && tsunamiModeID > 0 && !tsunamiSafety.blocked && !waveBelowTarget) {
             //MP Wave active hours check & wave enabled by user check have been completed in TsunamiPlugin.kt
             activityController = true
         }
+        val activityControl = glucose_status.delta <= ACTIVITY_CONTROL_MAX_DELTA //MP true = hold activity (activity control), false = build up activity
+
+        //MP Wave SMB zone: during activity control close to target, Wave doses with temp basal only. Target is taken here, before any later high-BG target adjustment.
+        val waveSmbZoneTop = TsunamiSafety.waveSmbZoneTop(target_bg, SMBcap, sens)
+        val waveTbrOnly = activityController && tsunamiModeID == 1 && activityControl && bg < waveSmbZoneTop
 
         if (activityController) {
             //MP Switch between activity control and activity build-up modes
-            if (glucose_status.delta <= 4.0) {
+            if (activityControl) {
                 //MP Adjust activity target to activityTarget % of current activity if glucose is near constant / delta is low (near-constant activity)
                 actMissing = round((actCurr * activityTarget - Math.max(actFuture, 0.0)) / 5, 4) //MP Use activityTarget% of current activity as target activity in the future; Divide by 5 to get per-minute activity
             } else {
@@ -532,7 +539,7 @@ class DetermineBasalTsunami(
             consoleError.add("iterations: $iterations")
             if ((tsuInsReq + iob_data.iob < bgCorrection) || (bgCorrection > iob_data.iob && bgCorrection > tsuInsReq)) {
                 consoleError.add("Mode: ISF-based glucose correction.")
-            } else if (glucose_status.delta <= 4.1 && actCurr > 0) {
+            } else if (activityControl) {
                 consoleError.add("Mode: Activity control. Target: " + round((activityTarget * 100), 0) + "%")
             } else {
                 consoleError.add("Mode: Ramping up activity.")
@@ -541,6 +548,10 @@ class DetermineBasalTsunami(
                 consoleError.add("Ramp-up mode:  "+ round((blendWeight)*100, 0) +"%")
 
                  */
+            }
+            if (tsunamiModeID == 1 && activityControl) {
+                if (waveTbrOnly) consoleError.add("SMB zone: BG $bg < ${round(waveSmbZoneTop, 0)}. Temp basal only, no SMB.")
+                else consoleError.add("SMB zone: BG $bg >= ${round(waveSmbZoneTop, 0)}. SMB allowed.")
             }
             consoleError.add("---------------------------------------------------")
         } else {
@@ -560,9 +571,9 @@ class DetermineBasalTsunami(
             if (glucose_status.delta < 0) {
                 consoleError.add("Negative delta reported. (" + glucose_status.delta + ")")
             }
-            /*if (bg < target_bg) {
-                consoleError.add("Glucose below target.")
-            }*/
+            if (waveBelowTarget) {
+                consoleError.add("Wave: glucose below target ($bg < $target_bg).")
+            }
             if (iob_data.iob <= 0.1) {
                 consoleError.add("IOB below 0.1 U.")
             }
@@ -1356,7 +1367,13 @@ class DetermineBasalTsunami(
             //console.error(profile.temptargetSet, target_bg, rT.COB);
             // only allow microboluses with COB or low temp targets, or within DIA hours of a bolus
             val maxBolus: Double
-            if (microBolusAllowed && enableSMB && bg > threshold) {
+            //MP Wave SMB zone: skip the SMB block, insulinReq is delivered by the temp basal code below
+            if (waveTbrOnly) {
+                rT.reason.append(
+                    "Wave SMB zone: BG $bg < ${round(waveSmbZoneTop, 0)}, temp basal only; tsuInsReq: $tsuInsReq; safety allowance: ${round(safetyAllowance, 2)}; insulinReq $insulinReq. "
+                )
+            }
+            if (microBolusAllowed && enableSMB && bg > threshold && !waveTbrOnly) {
                 // never bolus more than maxSMBBasalMinutes worth of basal
                 val mealInsulinReq = round(meal_data.mealCOB / profile.carb_ratio, 3)
                 //MP Use SMBcap during Tsunami or SMBcap-enabled Wave
@@ -1417,7 +1434,7 @@ class DetermineBasalTsunami(
                     rT.reason.append("; ###")
                     if ((tsuInsReq + iob_data.iob < bgCorrection) || (bgCorrection > iob_data.iob && bgCorrection > tsuInsReq)) {
                         rT.reason.append("; Mode: ISF-based glucose correction.")
-                    } else if (glucose_status.delta <= 4.1 && actCurr > 0) {
+                    } else if (activityControl) {
                         rT.reason.append("; Mode: Activity control. Target: " + round((activityTarget * 100), 0) + "%")
                     } else {
                         rT.reason.append("; Mode: Ramping up activity.")

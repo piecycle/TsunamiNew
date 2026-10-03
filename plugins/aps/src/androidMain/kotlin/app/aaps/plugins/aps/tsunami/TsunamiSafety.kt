@@ -32,6 +32,7 @@ enum class RiseClass(val allowance: Double) {
  * Layer 1: hard stop below an absolute BG floor.
  * Layer 2: BG risk attenuation (Kovatchev risk function) and a post-hypoglycemia lockout.
  * Layer 3: classification of the current rise as confirmed, probable or doubtful.
+ * Wave SMB zone: see [waveSmbZoneTop].
  *
  * The layers are combined by taking the minimum (not the product) together with an IOB headroom cap and a
  * mode ceiling. The result is snapped down to steps of 25 %.
@@ -67,8 +68,27 @@ object TsunamiSafety {
     private const val IOB_FULL_REDUCTION = 1.2 // fraction of max IOB
     private const val IOB_MIN_FACTOR = 0.6
 
+    // --- Wave SMB zone ---
+    const val ACTIVITY_CONTROL_MAX_DELTA = 4.0 // mg/dL per 5 min, at or below this Wave holds activity (activity control) instead of building it up
+    private const val WAVE_SMB_ZONE_MAX_ABOVE_TARGET = 60.0 // mg/dL, SMBs are always allowed this far above target, so a high ISF cannot block them for too long
+
     private const val ALLOWANCE_STEP = 0.25
     private const val MINUTE_MS = 60_000.0
+
+    /**
+     * Lowest BG at which Wave may give SMBs during activity control. Below it Wave doses with temp basal only,
+     * which the next loop cycle can still cancel.
+     *
+     * The zone is one full SMB deep (SMB cap * ISF): above it, one SMB alone cannot push BG below target.
+     * A small SMB cap allows SMBs earlier but each SMB is small. A large cap allows them later.
+     * The zone is never deeper than [WAVE_SMB_ZONE_MAX_ABOVE_TARGET].
+     *
+     * @param targetBg Current target in mg/dL, including a temp target.
+     * @param smbCap SMB cap in use right now (already scaled by the profile percentage, if enabled).
+     * @param sens ISF in use right now, in mg/dL per U.
+     */
+    fun waveSmbZoneTop(targetBg: Double, smbCap: Double, sens: Double): Double =
+        targetBg + min(smbCap * sens, WAVE_SMB_ZONE_MAX_ABOVE_TARGET).coerceAtLeast(0.0)
 
     /**
      * @param history Recent glucose (newest first, at least 150 min for the full lockout logic).

@@ -54,6 +54,7 @@ import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef.Companion.withArgs
+import app.aaps.core.keys.interfaces.withClick
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
@@ -739,15 +740,10 @@ open class TsunamiPlugin(
                     DoubleKey.TsuButtonIncrement2,
                     DoubleKey.TsuButtonIncrement3,
                     IntKey.TsuDefaultDuration,
-                    // PreferenceSubScreenDef(
-                    //     key = "key_advanced_tsunami_settings",
-                    //     titleResId = R.string.advanced_tsunami_title,
-                    //     items = listOf(
-                    //         //IntentKey.TsuWaveDisclaimer,
-                    //         IntKey.TsuActivityTarget,
-                    //         IntKey.TsuInsReqPCT
-                    //     )
-                    // )
+                    // Advanced settings: a third menu level is not drawn by the settings UI, so they follow a disclaimer row instead
+                    ApsIntentKey.TsunamiAdvancedDisclaimer.withClick { },
+                    IntKey.TsuActivityTarget,
+                    IntKey.TsuInsReqPCT
                 )
             ),
             PreferenceSubScreenDef(
@@ -760,15 +756,10 @@ open class TsunamiPlugin(
                     BooleanKey.WaveUseSMBCap,
                     DoubleKey.WaveSMBCap,
                     BooleanKey.WaveSMBCapScaling,
-                    // PreferenceSubScreenDef(
-                    //     key = "key_advanced_wave",
-                    //     titleResId = R.string.advanced_wave_title,
-                    //     items = listOf(
-                    //         //IntentKey.TsuWaveDisclaimer,
-                    //         IntKey.WaveActivityTarget,
-                    //         IntKey.WaveInsReqPCT
-                    //     )
-                    // )
+                    // Advanced settings: a third menu level is not drawn by the settings UI, so they follow a disclaimer row instead
+                    ApsIntentKey.WaveAdvancedDisclaimer.withClick { },
+                    IntKey.WaveActivityTarget,
+                    IntKey.WaveInsReqPCT
                 )
             ),
             BooleanKey.ApsUseDynamicSensitivity,

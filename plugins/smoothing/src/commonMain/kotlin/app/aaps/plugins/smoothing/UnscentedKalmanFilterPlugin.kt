@@ -815,7 +815,7 @@ class UnscentedKalmanFilterPlugin(
             // UKF update with effective parameters.
             update(xPredEff, pPredEff, z, rEff, x, p)
 
-            // Track innovations for adaptive-R and reset logic using effecgtive variance.
+            // Track innovations for adaptive-R and reset logic using effective variance.
             trackInnovation(innovation, innovationVarianceEff)
 
             // Pause R learning during real trend and on very large residuals.
