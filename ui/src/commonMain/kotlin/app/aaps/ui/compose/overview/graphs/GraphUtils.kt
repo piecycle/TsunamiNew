@@ -5,12 +5,15 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.overview.graph.SeriesType
+import app.aaps.core.interfaces.overview.graph.TsunamiWindow
+import app.aaps.core.ui.compose.AapsTheme
 import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
@@ -330,6 +333,111 @@ class NowLine(
 fun rememberNowLine(minTimestamp: Long, nowTimestamp: Long, color: Color): NowLine {
     return remember(minTimestamp, nowTimestamp, color) {
         NowLine(nowX = timestampToX(nowTimestamp, minTimestamp), color = color)
+    }
+}
+
+/**
+ * Transparent boxes for time windows (Tsunami mode), drawn UNDER the chart layers so the data
+ * stays on top. Each box covers the full chart height, from the start to the end of its window.
+ * Uses the same x-value-to-canvas transform as [NowLine].
+ *
+ * Each box has a border. The left and right border lines are drawn only where the window
+ * really starts and ends, not where the box is cut off at the edge of the visible area.
+ *
+ * @param windows Time windows as x-value ranges (minutes from minTimestamp, via [timestampToX])
+ * @param color Box color, already with its transparency
+ * @param borderColor Border color, already with its transparency
+ * @param borderWidth Border line width
+ */
+class TimeWindowBoxes(
+    private val windows: List<ClosedFloatingPointRange<Double>>,
+    private val color: Color,
+    private val borderColor: Color,
+    private val borderWidth: Dp = 1.dp
+) : Decoration {
+
+    override fun drawUnderLayers(context: CartesianDrawingContext) {
+        with(context) {
+            val xStep = ranges.xStep
+            if (xStep == 0.0 || windows.isEmpty()) return
+
+            fun toCanvasX(x: Double): Float =
+                layerBounds.left +
+                    layerDimensions.startPadding +
+                    layerDimensions.xSpacing * ((x - ranges.minX) / xStep).toFloat() -
+                    scroll
+
+            val strokePx = borderWidth.pixels
+            val half = strokePx / 2
+            val top = layerBounds.top + half
+            val bottom = layerBounds.bottom - half
+
+            for (window in windows) {
+                val startX = toCanvasX(window.start)
+                val endX = toCanvasX(window.endInclusive)
+                // Clip to the visible area so a box never paints over the axes
+                val left = startX.coerceAtLeast(layerBounds.left)
+                val right = endX.coerceAtMost(layerBounds.right)
+                if (right <= left) continue
+                with(mutableDrawScope) {
+                    drawRect(
+                        color = this@TimeWindowBoxes.color,
+                        topLeft = Offset(left, layerBounds.top),
+                        size = Size(right - left, layerBounds.height)
+                    )
+                    // Border: top and bottom over the visible part, sides only at the real start / end
+                    drawLine(borderColor, Offset(left, top), Offset(right, top), strokePx)
+                    drawLine(borderColor, Offset(left, bottom), Offset(right, bottom), strokePx)
+                    if (startX >= layerBounds.left) {
+                        drawLine(borderColor, Offset(startX + half, top), Offset(startX + half, bottom), strokePx)
+                    }
+                    if (endX <= layerBounds.right) {
+                        drawLine(borderColor, Offset(endX - half, top), Offset(endX - half, bottom), strokePx)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun equals(other: Any?): Boolean =
+        this === other ||
+            other is TimeWindowBoxes &&
+            windows == other.windows &&
+            color == other.color &&
+            borderColor == other.borderColor &&
+            borderWidth == other.borderWidth
+
+    override fun hashCode(): Int {
+        var result = windows.hashCode()
+        result = 31 * result + color.hashCode()
+        result = 31 * result + borderColor.hashCode()
+        result = 31 * result + borderWidth.hashCode()
+        return result
+    }
+}
+
+/** Alpha of the Tsunami boxes - low, so the glucose dots and lines stay easy to read on top. */
+private const val TSUNAMI_BOX_ALPHA = 0.15f
+
+/** Alpha of the Tsunami box border. */
+private const val TSUNAMI_BORDER_ALPHA = 0.3f
+
+/**
+ * Remember the Tsunami boxes decoration for a graph, or null when the graph should not show it.
+ * @param show the TSU option is on for this graph and Tsunami is the selected APS
+ */
+@Composable
+fun rememberTsunamiBoxes(show: Boolean, windows: List<TsunamiWindow>, minTimestamp: Long): TimeWindowBoxes? {
+    val tsunamiColor = AapsTheme.elementColors.tsunami
+    val color = tsunamiColor.copy(alpha = TSUNAMI_BOX_ALPHA)
+    val borderColor = tsunamiColor.copy(alpha = TSUNAMI_BORDER_ALPHA)
+    return remember(show, windows, minTimestamp, color, borderColor) {
+        if (!show || windows.isEmpty()) null
+        else TimeWindowBoxes(
+            windows = windows.map { timestampToX(it.startTime, minTimestamp)..timestampToX(it.endTime, minTimestamp) },
+            color = color,
+            borderColor = borderColor
+        )
     }
 }
 

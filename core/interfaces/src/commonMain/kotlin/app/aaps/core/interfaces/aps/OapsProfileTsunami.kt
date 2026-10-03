@@ -57,9 +57,7 @@ data class OapsProfileTsunami(
     var insConc: Double,
     var percentage: Int,
     var enableWaveMode: Boolean,
-    var waveStart: Double,
-    var waveEnd: Double,
-    var referenceTimer: Double,
+    var waveActiveHours: Boolean, // true if the current time is inside the Wave time window
     var waveUseSMBCap: Boolean,
     var SMBcap : Double,
     var insulinReqPCT : Double,

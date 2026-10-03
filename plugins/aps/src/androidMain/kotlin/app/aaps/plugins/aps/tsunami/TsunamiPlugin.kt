@@ -421,23 +421,18 @@ open class TsunamiPlugin(
         // Check if current insulin model is a PD model
         val PDmodel: Boolean = profile.iCfg.insulinLabel.contains("(PD)")
 
-        // wave active hours redefinition (allowing end times < start times)
-        var waveStart : Double = preferences.get(DoubleKey.WaveStart)
-        var waveEnd : Double = preferences.get(DoubleKey.WaveEnd)
-        var referenceTimer: Double = MidnightUtils.secondsFromMidnight() / 3600.0 //MP current time in hours
-        if (waveEnd < waveStart) {
-            if (referenceTimer < waveStart) {
-                referenceTimer -= (waveStart - 24.0) //MP Transformed timer, counting from (24 - waveStart) until 23;
-            } else {
-                referenceTimer -= waveStart //MP Transformed timer, counting from 0 until (23 - waveStart);
-            }
-            waveEnd = 24.0 - (waveStart - waveEnd) //MP transformed end hour, represents total duration of Tsunami in h
-            waveStart = 0.0 //MP set starting hour to 0 and transform the rest;
-        }
+        // Wave active time window, in minutes from midnight. Start is included, end is not.
+        // An end time before the start time means the window runs past midnight. Equal times mean no window.
+        val waveStart = preferences.get(IntKey.WaveStart)
+        val waveEnd = preferences.get(IntKey.WaveEnd)
+        val minutesNow = MidnightUtils.secondsFromMidnight(now) / 60
+        val waveActiveHours =
+            if (waveStart <= waveEnd) minutesNow >= waveStart && minutesNow < waveEnd
+            else minutesNow >= waveStart || minutesNow < waveEnd
 
         // Determine which mode will be active (0 = default; 1 = wave; 2 = tsunami)
         val enableWave : Boolean = preferences.get(BooleanKey.EnableWave)
-        val tsunamiModeID = persistenceLayer.getTsunamiActiveAt(now)?.tsunamiMode ?: if (referenceTimer in waveStart..waveEnd && enableWave) {
+        val tsunamiModeID = persistenceLayer.getTsunamiActiveAt(now)?.tsunamiMode ?: if (waveActiveHours && enableWave) {
             1 //MP Tsunami inactive but conditions for wave are met --> use Wave
         } else {
             0 //MP Tsunami inactive and conditions for wave are not met --> use oref1
@@ -573,9 +568,7 @@ open class TsunamiPlugin(
             insConc = profile.iCfg.concentration,
             percentage = profile.value.originalPercentage,//profile.percentage,
             enableWaveMode = enableWave,
-            waveStart = waveStart,
-            waveEnd = waveEnd,
-            referenceTimer = referenceTimer,
+            waveActiveHours = waveActiveHours,
             waveUseSMBCap = preferences.get(BooleanKey.WaveUseSMBCap),
             SMBcap = SMBcap,
             insulinReqPCT = insulinReqPCT,
@@ -751,8 +744,8 @@ open class TsunamiPlugin(
                 title = ApsStrings.wave_mode_settings_title,
                 items = listOf(
                     BooleanKey.EnableWave,
-                    DoubleKey.WaveStart,
-                    DoubleKey.WaveEnd,
+                    IntKey.WaveStart,
+                    IntKey.WaveEnd,
                     BooleanKey.WaveUseSMBCap,
                     DoubleKey.WaveSMBCap,
                     BooleanKey.WaveSMBCapScaling,

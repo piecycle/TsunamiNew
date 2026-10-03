@@ -120,6 +120,9 @@ interface OverviewDataCache {
     // Running mode graph: time segments for treatment belt background coloring
     val runningModeGraphFlow: StateFlow<RunningModeGraphData>
 
+    // Tsunami graph: Tsunami mode windows (boxes behind the graphs) + whether Tsunami is the active APS
+    val tsunamiGraphFlow: StateFlow<TsunamiGraphData>
+
     // =========================================================================
     // NSClient status (pump/openAPS/uploader from Nightscout) — only for AAPSCLIENT builds
     // =========================================================================

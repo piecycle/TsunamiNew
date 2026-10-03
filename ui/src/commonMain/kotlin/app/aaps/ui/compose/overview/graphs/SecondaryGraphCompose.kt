@@ -146,6 +146,7 @@ fun SecondaryGraphCompose(
     derivedTimeRange: Pair<Long, Long>?,
     nowTimestamp: Long,
     activityOverlay: Boolean = false,
+    tsunamiOverlay: Boolean = false,
     onVisibleRangeChanged: ((Pair<Double, Double>?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -236,7 +237,8 @@ fun SecondaryGraphCompose(
         SeriesType.HEART_RATE      -> viewModel.heartRateGraphFlow.collectAsStateWithLifecycle().value.heartRates
         SeriesType.STEPS           -> viewModel.stepsGraphFlow.collectAsStateWithLifecycle().value.steps
         SeriesType.ACTIVITY        -> viewModel.activityGraphFlow.collectAsStateWithLifecycle().value.activity
-        SeriesType.PREDICTIONS     -> emptyList() // UI-only overlay flag, not a secondary series
+        SeriesType.PREDICTIONS,
+        SeriesType.TSUNAMI         -> emptyList() // UI-only overlay flags, not secondary series
     }
 
     // Cache last non-empty treatment data to survive reset() cycles
@@ -614,7 +616,14 @@ fun SecondaryGraphCompose(
     val bottomAxisItemPlacer = rememberBottomAxisItemPlacer(minTimestamp)
     val nowLineColor = MaterialTheme.colorScheme.onSurface
     val nowLine = rememberNowLine(minTimestamp, nowTimestamp, nowLineColor)
-    val decorations = remember(nowLine, visibleRangeReporter) { listOf(nowLine, visibleRangeReporter) }
+    // Tsunami mode windows — transparent full-height boxes behind the series
+    val tsunamiData by viewModel.tsunamiGraphFlow.collectAsStateWithLifecycle()
+    val tsunamiBoxes = rememberTsunamiBoxes(
+        show = tsunamiData.isTsunamiAps && tsunamiOverlay,
+        windows = tsunamiData.windows,
+        minTimestamp = minTimestamp
+    )
+    val decorations = remember(tsunamiBoxes, nowLine, visibleRangeReporter) { listOfNotNull(tsunamiBoxes, nowLine, visibleRangeReporter) }
 
     // Union of Y values across all primary-layer series (IOB, COB, simple series, DevSlope-min,
     // deviation lines), windowed to the visible scroll/zoom range — computed once here since the
@@ -1159,7 +1168,8 @@ data class SeriesColors(
         SeriesType.HEART_RATE      -> heartRate
         SeriesType.STEPS           -> steps
         SeriesType.ACTIVITY        -> activity
-        SeriesType.PREDICTIONS     -> activity // unused — PREDICTIONS is a BG overlay flag, not a secondary series
+        SeriesType.PREDICTIONS,
+        SeriesType.TSUNAMI         -> activity // unused — overlay flags, not secondary series
     }
 }
 

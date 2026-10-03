@@ -24,6 +24,7 @@ import app.aaps.core.interfaces.overview.graph.TbrDisplayData
 import app.aaps.core.interfaces.overview.graph.TempTargetDisplayData
 import app.aaps.core.interfaces.overview.graph.TimeRange
 import app.aaps.core.interfaces.overview.graph.TreatmentGraphData
+import app.aaps.core.interfaces.overview.graph.TsunamiGraphData
 import app.aaps.core.interfaces.overview.graph.VarSensGraphData
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -67,6 +68,7 @@ class FakeOverviewDataCache : OverviewDataCache {
     override val basalGraphFlow = MutableStateFlow(BasalGraphData(emptyList(), emptyList(), 0.0))
     override val targetLineFlow = MutableStateFlow(TargetLineData(emptyList()))
     override val runningModeGraphFlow = MutableStateFlow(RunningModeGraphData(emptyList()))
+    override val tsunamiGraphFlow = MutableStateFlow(TsunamiGraphData(isTsunamiAps = false, windows = emptyList()))
 
     override val nsClientStatusFlow = MutableStateFlow(AapsClientStatusData())
 

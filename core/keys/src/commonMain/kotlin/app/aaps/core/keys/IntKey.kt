@@ -453,6 +453,9 @@ enum class IntKey(
     TsuInsReqPCT("key_insulinReqPCT", 65, 50, 100, title = KeysStrings.insulinReqPCT_title, defaultedBySM = true, unitType = UnitType.PERCENT),
     WaveActivityTarget("key_wave_activity_target", 70, 50, 100, title = KeysStrings.wave_activity_target_title, defaultedBySM = true, dependency = BooleanKey.EnableWave, unitType = UnitType.PERCENT),
     WaveInsReqPCT("key_wave_insulinReqPCT", 65, 30, 100, title = KeysStrings.wave_insulinReqPCT_title, defaultedBySM = true, dependency = BooleanKey.EnableWave, unitType = UnitType.PERCENT),
+    // Minutes from midnight. New key names because the old keys stored decimal hours.
+    WaveStart("key_wave_start_time", 11 * 60, 0, 24 * 60 - 1, title = KeysStrings.wave_start_title, summary = KeysStrings.wave_start_summary, preferenceType = PreferenceType.TIME, defaultedBySM = true, dependency = BooleanKey.EnableWave),
+    WaveEnd("key_wave_end_time", 21 * 60, 0, 24 * 60 - 1, title = KeysStrings.wave_end_title, summary = KeysStrings.wave_end_summary, preferenceType = PreferenceType.TIME, defaultedBySM = true, dependency = BooleanKey.EnableWave),
     ;
 
     override val entries: Map<Int, TextRef> = entriesRefs

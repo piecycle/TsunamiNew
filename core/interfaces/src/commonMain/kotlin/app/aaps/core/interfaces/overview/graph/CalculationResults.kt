@@ -421,3 +421,27 @@ data class RunningModeSegment(
 data class RunningModeGraphData(
     val segments: List<RunningModeSegment>
 )
+
+// ============================================================================
+// Tsunami Graph Data (Tsunami mode windows drawn as boxes behind the graphs)
+// ============================================================================
+
+/**
+ * One time window in which Tsunami mode was (or is planned to be) active.
+ * [endTime] is the planned end, so it can be in the future while the mode is running.
+ */
+data class TsunamiWindow(
+    val startTime: Long,
+    val endTime: Long
+)
+
+/**
+ * Tsunami graph data.
+ * @param isTsunamiAps true when Tsunami is the selected APS. The TSU option and the boxes are
+ *   shown only then.
+ * @param windows Tsunami mode windows in the graph time range, oldest first.
+ */
+data class TsunamiGraphData(
+    val isTsunamiAps: Boolean,
+    val windows: List<TsunamiWindow>
+)

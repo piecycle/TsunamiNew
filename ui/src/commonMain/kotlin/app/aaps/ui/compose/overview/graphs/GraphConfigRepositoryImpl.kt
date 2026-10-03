@@ -82,6 +82,7 @@ class GraphConfigRepositoryImpl(
         private const val KEY_IOB_HEIGHT = "iobHeight"
         private const val KEY_SERIES = "series"
         private const val KEY_HEIGHT = "height"
+        private const val KEY_OVERLAYS = "overlays"
 
         private fun overlaysToJson(overlays: List<SeriesType>) = buildJsonArray {
             for (type in overlays) add(type.name)
@@ -114,6 +115,7 @@ class GraphConfigRepositoryImpl(
                             addJsonObject {
                                 put(KEY_SERIES, buildJsonArray { for (series in graph.series) add(series.name) })
                                 put(KEY_HEIGHT, graph.height)
+                                put(KEY_OVERLAYS, overlaysToJson(graph.overlays))
                             }
                         }
                     }
@@ -126,6 +128,8 @@ class GraphConfigRepositoryImpl(
                 val type = element.seriesTypeOrNull() ?: continue // Skip unknown series (forward compat)
                 // IOB is now a fixed graph — strip it from configurable graphs (legacy migration)
                 if (type == SeriesType.IOB) continue
+                // Overlay flags are not data series and must never take an axis slot
+                if (type == SeriesType.PREDICTIONS || type == SeriesType.TSUNAMI) continue
                 if (type !in series) series.add(type)
             }
             return series.take(2)
@@ -133,20 +137,26 @@ class GraphConfigRepositoryImpl(
 
         fun fromJson(json: String): GraphConfig {
             val obj = Json.parseToJsonElement(json) as JsonObject
-            val bgOverlays = overlaysFromJson(obj.array(KEY_BG_OVERLAYS), listOf(SeriesType.ACTIVITY, SeriesType.PREDICTIONS))
-            val iobOverlays = overlaysFromJson(obj.array(KEY_IOB_OVERLAYS), listOf(SeriesType.ACTIVITY))
+            val defaults = GraphConfig()
+            val bgOverlays = overlaysFromJson(obj.array(KEY_BG_OVERLAYS), defaults.bgOverlays)
+            val iobOverlays = overlaysFromJson(obj.array(KEY_IOB_OVERLAYS), defaults.iobOverlays)
             val bgHeight = obj.height(KEY_BG_HEIGHT)
             val iobHeight = obj.height(KEY_IOB_HEIGHT)
             val graphs = mutableListOf<SecondaryGraph>()
             for (raw in obj.array(KEY_SECONDARY_GRAPHS).orEmpty()) {
                 // Legacy format: element is an array of series names.
-                // New format: element is an object { series: [...], height: Int }.
-                val (series, height) = when (raw) {
-                    is JsonArray  -> parseSeriesArray(raw) to GraphConfig.DEFAULT_GRAPH_HEIGHT_DP
-                    is JsonObject -> (raw.array(KEY_SERIES)?.let { parseSeriesArray(it) } ?: emptyList()) to raw.height(KEY_HEIGHT)
-                    else          -> emptyList<SeriesType>() to GraphConfig.DEFAULT_GRAPH_HEIGHT_DP
+                // New format: element is an object { series: [...], height: Int, overlays: [...] }.
+                val graph = when (raw) {
+                    is JsonArray  -> SecondaryGraph(parseSeriesArray(raw))
+                    is JsonObject -> SecondaryGraph(
+                        series = raw.array(KEY_SERIES)?.let { parseSeriesArray(it) } ?: emptyList(),
+                        height = raw.height(KEY_HEIGHT),
+                        overlays = overlaysFromJson(raw.array(KEY_OVERLAYS), emptyList())
+                    )
+
+                    else          -> null
                 }
-                if (series.isNotEmpty()) graphs.add(SecondaryGraph(series, height))
+                if (graph != null && graph.series.isNotEmpty()) graphs.add(graph)
             }
             return GraphConfig(
                 bgOverlays = bgOverlays,

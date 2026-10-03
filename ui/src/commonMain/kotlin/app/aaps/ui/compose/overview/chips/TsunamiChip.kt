@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import app.aaps.core.ui.compose.AapsSpacing
+import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.icons.IcTsunami
 
 // Assuming a data class like this exists or will be added
@@ -33,14 +34,13 @@ internal fun TsunamiChip(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (state.isActive) {
-        // Replace with actual Tsunami color
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        AapsTheme.elementColors.tsunami.copy(alpha = 0.2f)
     } else {
         Color.Transparent
     }
     
     val contentColor = if (state.isActive) {
-        MaterialTheme.colorScheme.primary
+        AapsTheme.elementColors.tsunami
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }

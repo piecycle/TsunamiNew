@@ -72,6 +72,13 @@ fun AdaptivePreferenceItem(
                     )
                 }
 
+                PreferenceType.TIME       -> {
+                    AdaptiveTimePreferenceItem(
+                        intKey = key,
+                        visibilityContext = visibilityContext
+                    )
+                }
+
                 else                      -> {
                     // Default to text field for unsupported types
                     AdaptiveIntPreferenceItem(

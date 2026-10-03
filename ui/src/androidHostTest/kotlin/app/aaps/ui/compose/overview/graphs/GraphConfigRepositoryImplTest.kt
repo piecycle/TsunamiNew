@@ -19,11 +19,14 @@ class GraphConfigRepositoryImplTest {
     @Test
     fun `a configuration survives a round trip`() {
         val config = GraphConfig(
-            bgOverlays = listOf(SeriesType.ACTIVITY, SeriesType.PREDICTIONS),
-            iobOverlays = listOf(SeriesType.ACTIVITY),
+            bgOverlays = listOf(SeriesType.ACTIVITY, SeriesType.PREDICTIONS, SeriesType.TSUNAMI),
+            iobOverlays = listOf(SeriesType.ACTIVITY, SeriesType.TSUNAMI),
             bgHeight = 200,
             iobHeight = 150,
-            secondaryGraphs = listOf(SecondaryGraph(listOf(SeriesType.COB), 180))
+            secondaryGraphs = listOf(
+                SecondaryGraph(listOf(SeriesType.COB), 180, overlays = listOf(SeriesType.TSUNAMI)),
+                SecondaryGraph(listOf(SeriesType.BGI, SeriesType.DEVIATIONS), 120)
+            )
         )
 
         val restored = GraphConfigRepositoryImpl.fromJson(GraphConfigRepositoryImpl.toJson(config))
@@ -87,8 +90,34 @@ class GraphConfigRepositoryImplTest {
     fun `missing overlays fall back to the defaults`() {
         val restored = GraphConfigRepositoryImpl.fromJson("{}")
 
-        assertThat(restored.bgOverlays).containsExactly(SeriesType.ACTIVITY, SeriesType.PREDICTIONS).inOrder()
+        assertThat(restored.bgOverlays).containsExactly(SeriesType.ACTIVITY, SeriesType.PREDICTIONS, SeriesType.TSUNAMI).inOrder()
         assertThat(restored.iobOverlays).containsExactly(SeriesType.ACTIVITY)
+    }
+
+    @Test
+    fun `a stored BG overlay list without TSUNAMI stays without it`() {
+        // Users who saved their graphs before TSU existed switch it on by hand. No migration.
+        val restored = GraphConfigRepositoryImpl.fromJson("""{"bgOverlays":["ACTIVITY","PREDICTIONS"]}""")
+
+        assertThat(restored.bgOverlays).containsExactly(SeriesType.ACTIVITY, SeriesType.PREDICTIONS).inOrder()
+    }
+
+    @Test
+    fun `a secondary graph written before overlays existed has none`() {
+        val restored = GraphConfigRepositoryImpl.fromJson("""{"secondaryGraphs":[{"series":["COB"],"height":120}]}""")
+
+        assertThat(restored.secondaryGraphs.first().overlays).isEmpty()
+    }
+
+    @Test
+    fun `TSUNAMI never takes an axis slot in a secondary graph`() {
+        // It is an overlay flag, not a data series - if it sits in the series list it is dropped there.
+        val restored = GraphConfigRepositoryImpl.fromJson(
+            """{"secondaryGraphs":[{"series":["TSUNAMI","COB","ACTIVITY"],"overlays":["TSUNAMI"]}]}"""
+        )
+
+        assertThat(restored.secondaryGraphs.first().series).containsExactly(SeriesType.COB, SeriesType.ACTIVITY).inOrder()
+        assertThat(restored.secondaryGraphs.first().overlays).containsExactly(SeriesType.TSUNAMI)
     }
 
     @Test

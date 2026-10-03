@@ -574,7 +574,15 @@ fun BgGraphCompose(
         )
     }
 
-    val decorations = remember(inRangeBox, nowLine) { listOf(inRangeBox, nowLine) }
+    // Tsunami mode windows — transparent full-height boxes, drawn first so they sit behind everything
+    val tsunamiData by viewModel.tsunamiGraphFlow.collectAsStateWithLifecycle()
+    val tsunamiBoxes = rememberTsunamiBoxes(
+        show = tsunamiData.isTsunamiAps && SeriesType.TSUNAMI in bgOverlays,
+        windows = tsunamiData.windows,
+        minTimestamp = minTimestamp
+    )
+
+    val decorations = remember(tsunamiBoxes, inRangeBox, nowLine) { listOfNotNull(tsunamiBoxes, inRangeBox, nowLine) }
 
     // =========================================================================
     // Range providers — hoisted out of rememberCartesianChart so keys are re-evaluated on recomposition

@@ -106,7 +106,7 @@ private val BG_OVERLAY_SERIES = listOf(SeriesType.ACTIVITY, SeriesType.PREDICTIO
 
 /** Series types available for user-configurable secondary graphs (IOB + UI-only overlays excluded) */
 private val CONFIGURABLE_SERIES = SeriesType.entries.filter {
-    it != SeriesType.IOB && it != SeriesType.PREDICTIONS
+    it != SeriesType.IOB && it != SeriesType.PREDICTIONS && it != SeriesType.TSUNAMI
 }
 
 @OptIn(FlowPreview::class)
@@ -373,6 +373,11 @@ fun GraphsSection(
             nowTimestamp = nowTimestamp,
             modifier = Modifier.fillMaxWidth()
         )
+        // The TSU option (Tsunami mode boxes) is offered on every graph, but only while Tsunami is
+        // the selected APS. A stored TSU choice is kept when the APS changes, it is just not shown.
+        val tsunamiData by graphViewModel.tsunamiGraphFlow.collectAsStateWithLifecycle()
+        val tsunamiOption = if (tsunamiData.isTsunamiAps) listOf(SeriesType.TSUNAMI) else emptyList()
+
         // BG Graph - primary interactive graph
         var editingBgOverlays by remember { mutableStateOf(false) }
 
@@ -437,7 +442,7 @@ fun GraphsSection(
             GraphSeriesBottomSheet(
                 title = stringResource(CoreUiStrings.graph_bg),
                 selectedSeries = graphConfig.bgOverlays,
-                availableSeries = BG_OVERLAY_SERIES,
+                availableSeries = BG_OVERLAY_SERIES + tsunamiOption,
                 height = graphConfig.bgHeight,
                 onHeightChange = { h ->
                     graphViewModel.updateGraphConfig(graphConfig.copy(bgHeight = h))
@@ -461,6 +466,7 @@ fun GraphsSection(
                 derivedTimeRange = derivedTimeRange,
                 nowTimestamp = nowTimestamp,
                 activityOverlay = SeriesType.ACTIVITY in graphConfig.iobOverlays,
+                tsunamiOverlay = SeriesType.TSUNAMI in graphConfig.iobOverlays,
                 onVisibleRangeChanged = { iobVisibleRange = it },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -487,7 +493,7 @@ fun GraphsSection(
             GraphSeriesBottomSheet(
                 title = stringResource(CoreUiStrings.iob) + " / " + stringResource(CoreUiStrings.basal_shortname),
                 selectedSeries = graphConfig.iobOverlays,
-                availableSeries = listOf(SeriesType.ACTIVITY),
+                availableSeries = listOf(SeriesType.ACTIVITY) + tsunamiOption,
                 height = graphConfig.iobHeight,
                 onHeightChange = { h ->
                     graphViewModel.updateGraphConfig(graphConfig.copy(iobHeight = h))
@@ -513,6 +519,7 @@ fun GraphsSection(
                     zoomState = secZoomStates[i],
                     derivedTimeRange = derivedTimeRange,
                     nowTimestamp = nowTimestamp,
+                    tsunamiOverlay = SeriesType.TSUNAMI in secondary.overlays,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(secondary.height.dp)
@@ -539,8 +546,8 @@ fun GraphsSection(
             val editing = graphConfig.secondaryGraphs[editingGraphIndex]
             GraphSeriesBottomSheet(
                 title = stringResource(CoreUiStrings.graph_number, editingGraphIndex + 2),
-                selectedSeries = editing.series,
-                availableSeries = CONFIGURABLE_SERIES,
+                selectedSeries = editing.series + editing.overlays,
+                availableSeries = CONFIGURABLE_SERIES + tsunamiOption,
                 height = editing.height,
                 onHeightChange = { h ->
                     val graphs = graphConfig.secondaryGraphs.toMutableList()
@@ -549,6 +556,14 @@ fun GraphsSection(
                 },
                 onToggle = { type ->
                     val graphs = graphConfig.secondaryGraphs.toMutableList()
+                    if (type == SeriesType.TSUNAMI) {
+                        // Overlay flag: kept apart from the series, never takes an axis slot
+                        val overlays = graphs[editingGraphIndex].overlays.toMutableList()
+                        if (type in overlays) overlays.remove(type) else overlays.add(type)
+                        graphs[editingGraphIndex] = graphs[editingGraphIndex].copy(overlays = overlays)
+                        graphViewModel.updateGraphConfig(graphConfig.copy(secondaryGraphs = graphs))
+                        return@GraphSeriesBottomSheet
+                    }
                     val current = graphs[editingGraphIndex].series.toMutableList()
                     if (type in current) {
                         current.remove(type)
@@ -587,14 +602,19 @@ fun GraphsSection(
             }
             if (showAddSheet) {
                 var newGraphSeries by remember { mutableStateOf(emptyList<SeriesType>()) }
+                var newGraphOverlays by remember { mutableStateOf(emptyList<SeriesType>()) }
                 var newGraphHeight by remember { mutableIntStateOf(GraphConfig.DEFAULT_GRAPH_HEIGHT_DP) }
                 GraphSeriesBottomSheet(
                     title = stringResource(CoreUiStrings.graph_new),
-                    selectedSeries = newGraphSeries,
-                    availableSeries = CONFIGURABLE_SERIES,
+                    selectedSeries = newGraphSeries + newGraphOverlays,
+                    availableSeries = CONFIGURABLE_SERIES + tsunamiOption,
                     height = newGraphHeight,
                     onHeightChange = { newGraphHeight = it },
                     onToggle = { type ->
+                        if (type == SeriesType.TSUNAMI) {
+                            newGraphOverlays = if (type in newGraphOverlays) newGraphOverlays - type else newGraphOverlays + type
+                            return@GraphSeriesBottomSheet
+                        }
                         val current = newGraphSeries.toMutableList()
                         if (type in current) {
                             current.remove(type)
@@ -605,12 +625,14 @@ fun GraphsSection(
                         newGraphSeries = current
                     },
                     onDismiss = {
+                        // A graph needs at least one data series, TSU alone does not make a graph
                         if (newGraphSeries.isNotEmpty()) {
                             val graphs = graphConfig.secondaryGraphs.toMutableList()
-                            graphs.add(SecondaryGraph(newGraphSeries, newGraphHeight))
+                            graphs.add(SecondaryGraph(newGraphSeries, newGraphHeight, newGraphOverlays))
                             graphViewModel.updateGraphConfig(graphConfig.copy(secondaryGraphs = graphs))
                         }
                         newGraphSeries = emptyList()
+                        newGraphOverlays = emptyList()
                         newGraphHeight = GraphConfig.DEFAULT_GRAPH_HEIGHT_DP
                         showAddSheet = false
                     }
@@ -647,6 +669,7 @@ private fun seriesShortNameId(type: SeriesType): TextRef = when (type) {
     SeriesType.STEPS           -> CoreUiStrings.steps_shortname
     SeriesType.ACTIVITY        -> CoreUiStrings.activity_shortname
     SeriesType.PREDICTIONS     -> CoreUiStrings.predictions_shortname
+    SeriesType.TSUNAMI         -> CoreUiStrings.tsunami_shortname
 }
 
 // =========================================================================

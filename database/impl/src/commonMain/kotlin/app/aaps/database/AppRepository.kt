@@ -896,6 +896,9 @@ class AppRepository internal constructor(
     suspend fun getTsunamiActiveAt(timestamp: Long): Tsunami? =
         database.tsunamiDao.getTsunamiActiveAt(timestamp)
 
+    suspend fun getTsunamiOverlapping(from: Long, to: Long): List<Tsunami> =
+        database.tsunamiDao.getTsunamiOverlapping(from, to)
+
     suspend fun getTsunamiDataFromTime(timestamp: Long, ascending: Boolean = true): List<Tsunami> =
         database.tsunamiDao.getTsunamiDataFromTime(timestamp).reversedIf(!ascending)
 

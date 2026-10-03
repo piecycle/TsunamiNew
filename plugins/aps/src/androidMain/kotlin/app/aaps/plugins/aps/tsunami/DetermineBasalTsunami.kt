@@ -404,11 +404,10 @@ class DetermineBasalTsunami(
         val deltaReductionPCT = profile.deltaReductionPCT //MP Reduction of current delta by X percent; 1 = delta of 0, 0.5 = delta of 50% of current delta;
         var SMBcap = profile.SMBcap
         var insulinReqPCT = 0.5 //MP Default used by oref1
-        val waveStart = profile.waveStart
-        val waveEnd = profile.waveEnd
         val activityTarget = profile.activityTarget
         var tsuInsReq = 0.0
         val bgCorrection = (bg - target_bg) / sens //MP Use to compare with tsunami output to decide between oref1 and activity controller
+        var isfCorrectionUsed = false //MP true if the ISF-based correction (minus IOB) replaced the Tsunami result
         var iterations: Int = 0 //MP Not used in the PK model - will show up as 'undefined' - this can be used for debugging if people send screenshots of TSUNAMI STATUS
 
         //MP Calculate absolute activity to neutralise delta
@@ -505,9 +504,10 @@ class DetermineBasalTsunami(
                 }
             }
 
-            //MP If the usual bg correction equation yields a higher insulin requirement than Tsunami, use that as insReq
-            if ((tsuInsReq + iob_data.iob) < bgCorrection || (bgCorrection > iob_data.iob && bgCorrection > tsuInsReq)) { //MP Wave active hours check & wave enabled by user check have been completed in TsunamiPlugin.kt
-                tsuInsReq = bgCorrection
+            //MP If the usual bg correction minus IOB yields a higher insulin requirement than Tsunami, use that as insReq
+            isfCorrectionUsed = bgCorrection - iob_data.iob > tsuInsReq
+            if (isfCorrectionUsed) {
+                tsuInsReq = bgCorrection - iob_data.iob
             }
 
             tsuInsReq = round(tsuInsReq, 2)
@@ -537,7 +537,7 @@ class DetermineBasalTsunami(
             consoleError.add("SMBcap_live: $SMBcap")
             consoleError.add("tsuInsReq: $tsuInsReq")
             consoleError.add("iterations: $iterations")
-            if ((tsuInsReq + iob_data.iob < bgCorrection) || (bgCorrection > iob_data.iob && bgCorrection > tsuInsReq)) {
+            if (isfCorrectionUsed) {
                 consoleError.add("Mode: ISF-based glucose correction.")
             } else if (activityControl) {
                 consoleError.add("Mode: Activity control. Target: " + round((activityTarget * 100), 0) + "%")
@@ -565,7 +565,7 @@ class DetermineBasalTsunami(
                 consoleError.add("TSUNAMI / WAVE BYPASSED")
                 consoleError.add("---------------------------------------------------")
             }
-            if (profile.referenceTimer !in waveStart..waveEnd) {
+            if (!profile.waveActiveHours) {
                 consoleError.add("Wave: outside active hours.")
             }
             if (glucose_status.delta < 0) {
@@ -1376,8 +1376,8 @@ class DetermineBasalTsunami(
             if (microBolusAllowed && enableSMB && bg > threshold && !waveTbrOnly) {
                 // never bolus more than maxSMBBasalMinutes worth of basal
                 val mealInsulinReq = round(meal_data.mealCOB / profile.carb_ratio, 3)
-                //MP Use SMBcap during Tsunami or SMBcap-enabled Wave
-                if (tsunamiModeID == 2 || (tsunamiModeID == 1 && profile.waveUseSMBCap)) {
+                //MP Use SMBcap during Tsunami or SMBcap-enabled Wave, but only when the activity controller doses; oref1 keeps its own limits
+                if (activityController && (tsunamiModeID == 2 || (tsunamiModeID == 1 && profile.waveUseSMBCap))) {
                     maxBolus = SMBcap
                 } else if (iob_data.iob > mealInsulinReq && iob_data.iob > 0) {
                     consoleError.add("IOB ${iob_data.iob} > COB ${meal_data.mealCOB}; mealInsulinReq = $mealInsulinReq")
@@ -1432,7 +1432,7 @@ class DetermineBasalTsunami(
                     rT.reason.append("; tsuInsReq: $tsuInsReq")
                     rT.reason.append("; iterations: $iterations")
                     rT.reason.append("; ###")
-                    if ((tsuInsReq + iob_data.iob < bgCorrection) || (bgCorrection > iob_data.iob && bgCorrection > tsuInsReq)) {
+                    if (isfCorrectionUsed) {
                         rT.reason.append("; Mode: ISF-based glucose correction.")
                     } else if (activityControl) {
                         rT.reason.append("; Mode: Activity control. Target: " + round((activityTarget * 100), 0) + "%")

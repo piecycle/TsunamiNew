@@ -1650,6 +1650,14 @@ interface PersistenceLayer {
     suspend fun getTsunamiActiveAt(timestamp: Long): TSU?
 
     /**
+     * get valid Tsunami DB-entries that overlap the time window, oldest first.
+     * A record that started before [from] and is still running at [from] is included.
+     * @param from start of the window in ms
+     * @param to end of the window in ms
+     */
+    suspend fun getTsunamiFromTimeToTime(from: Long, to: Long): List<TSU>
+
+    /**
      * insert or update Tsunami record
      * @param tsu record
      */

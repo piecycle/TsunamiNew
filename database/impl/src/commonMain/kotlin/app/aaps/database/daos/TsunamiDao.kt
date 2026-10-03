@@ -40,6 +40,10 @@ internal interface TsunamiDao : TraceableDao<Tsunami> {
     @Query("SELECT * FROM $TABLE_TSUNAMI WHERE timestamp <= :timestamp AND (timestamp + duration) > :timestamp AND (referenceId IS NULL) AND (isValid = 1) ORDER BY timestamp DESC LIMIT 1")
     suspend fun getTsunamiActiveAt(timestamp: Long): Tsunami?
 
+    /** All records that overlap [from, to), including one that started before [from] and is still running. */
+    @Query("SELECT * FROM $TABLE_TSUNAMI WHERE timestamp < :to AND (timestamp + duration) > :from AND (referenceId IS NULL) AND (isValid = 1) ORDER BY timestamp ASC")
+    suspend fun getTsunamiOverlapping(from: Long, to: Long): List<Tsunami>
+
     @Query("SELECT * FROM $TABLE_TSUNAMI WHERE timestamp >= :timestamp AND referenceId IS NULL ORDER BY timestamp ASC")
     suspend fun getTsunamiDataIncludingInvalidFromTime(timestamp: Long): List<Tsunami>
 

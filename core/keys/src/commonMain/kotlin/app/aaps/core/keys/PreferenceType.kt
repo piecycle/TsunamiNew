@@ -15,6 +15,9 @@ enum class PreferenceType {
     /** Renders as a dropdown/dialog list (requires entries) */
     LIST,
 
+    /** For IntPreferenceKey - time of day picker, value is minutes from midnight (0-1439) */
+    TIME,
+
     /** Default for IntentPreferenceKey - clickable preference that invokes onClick */
     CLICK,
 

@@ -2640,6 +2640,10 @@ class PersistenceLayerImpl(
     override suspend fun getTsunamiActiveAt(timestamp: Long): TSU? =
         repository.getTsunamiActiveAt(timestamp)?.fromDb()
 
+    override suspend fun getTsunamiFromTimeToTime(from: Long, to: Long): List<TSU> = withContext(aapsIoDispatcher) {
+        repository.getTsunamiOverlapping(from, to).map { it.fromDb() }
+    }
+
     override suspend fun insertOrUpdateTsunami(tsu: TSU, action: Action, source: Sources, note: String?, listValues: List<ValueWithUnit>)
         : PersistenceLayer.TransactionResult<TSU> = withContext(aapsIoDispatcher) {
         try {

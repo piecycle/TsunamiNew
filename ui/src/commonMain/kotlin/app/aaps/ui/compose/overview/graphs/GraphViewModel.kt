@@ -121,6 +121,7 @@ class GraphViewModel(
     val basalGraphFlow = cache.basalGraphFlow
     val targetLineFlow = cache.targetLineFlow
     val runningModeGraphFlow = cache.runningModeGraphFlow
+    val tsunamiGraphFlow = cache.tsunamiGraphFlow
 
     // NSClient status (pump/openAPS/uploader from Nightscout)
     val nsClientStatusFlow = cache.nsClientStatusFlow

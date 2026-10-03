@@ -13,10 +13,12 @@ import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.SC
 import app.aaps.core.data.model.TB
 import app.aaps.core.data.model.TE
+import app.aaps.core.data.model.TSU
 import app.aaps.core.data.model.TT
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.concurrent.aapsIoDispatcher
 import app.aaps.core.interfaces.InterfacesStrings
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -65,6 +67,8 @@ import app.aaps.core.interfaces.overview.graph.TherapyEventGraphPoint
 import app.aaps.core.interfaces.overview.graph.TherapyEventType
 import app.aaps.core.interfaces.overview.graph.TimeRange
 import app.aaps.core.interfaces.overview.graph.TreatmentGraphData
+import app.aaps.core.interfaces.overview.graph.TsunamiGraphData
+import app.aaps.core.interfaces.overview.graph.TsunamiWindow
 import app.aaps.core.interfaces.overview.graph.VarSensGraphData
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
@@ -72,6 +76,7 @@ import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventBucketedDataCreated
+import app.aaps.core.interfaces.rx.events.EventConfigBuilderChange
 import app.aaps.core.interfaces.rx.events.EventLoopUpdateGui
 import app.aaps.core.interfaces.rx.events.EventNewOpenLoopNotification
 import app.aaps.core.interfaces.rx.events.EventNsClientStatusUpdated
@@ -140,6 +145,9 @@ private const val WARN_BATTERY_PERCENT = 30.0
 private const val URGENT_BATTERY_PERCENT = 20.0
 private const val WARN_BATTERY_VOLTAGE = 1.35
 private const val URGENT_BATTERY_VOLTAGE = 1.3
+
+/** `TSU.tsunamiMode` value of Tsunami mode itself. Only these windows are drawn on the graphs. */
+private const val TSUNAMI_MODE_TSUNAMI = 2
 
 @OptIn(FlowPreview::class)
 @AssistedInject
@@ -257,6 +265,8 @@ class OverviewDataCacheImpl(
     override val targetLineFlow: StateFlow<TargetLineData> = _targetLineFlow.asStateFlow()
     private val _runningModeGraphFlow = MutableStateFlow(RunningModeGraphData(emptyList()))
     override val runningModeGraphFlow: StateFlow<RunningModeGraphData> = _runningModeGraphFlow.asStateFlow()
+    private val _tsunamiGraphFlow = MutableStateFlow(TsunamiGraphData(isTsunamiAps = false, windows = emptyList()))
+    override val tsunamiGraphFlow: StateFlow<TsunamiGraphData> = _tsunamiGraphFlow.asStateFlow()
 
     // NSClient status
     private val _nsClientStatusFlow = MutableStateFlow(AapsClientStatusData())
@@ -294,6 +304,7 @@ class OverviewDataCacheImpl(
                     rebuildBasalGraph()
                     rebuildHeartRateGraph()
                     rebuildStepsGraph()
+                    rebuildTsunamiGraph()
                 }
         }
 
@@ -344,6 +355,7 @@ class OverviewDataCacheImpl(
                 updateTempTargetFromDatabase()
                 updateRunningModeFromDatabase()
                 updateTbrFromDatabase()
+                rebuildTsunamiGraph()
             }
 
             // Observe GlucoseValue changes
@@ -466,6 +478,19 @@ class OverviewDataCacheImpl(
                         .debounce(300)
                         .collect { updateTempTargetFromDatabase() }
                 }
+            }
+            // Tsunami mode windows (boxes behind the graphs)
+            scope.launch {
+                // No compensateForClockSkew: TSU is not TimeStamped
+                persistenceLayer.observeChanges(TSU::class)
+                    .debounce(300)
+                    .collect { rebuildTsunamiGraph() }
+            }
+            // A change of the selected APS shows or hides the Tsunami boxes and the TSU option
+            scope.launch {
+                rxBus.toFlow(EventConfigBuilderChange::class)
+                    .debounce(300)
+                    .collect { rebuildTsunamiGraph() }
             }
             // EPS changes affect EPS graph, profile chip, TT chip, target line, and basal
             scope.launch {
@@ -931,6 +956,20 @@ class OverviewDataCacheImpl(
             }
     }
 
+    private suspend fun rebuildTsunamiGraph() {
+        val isTsunamiAps = activePlugin.activeAPS?.algorithm == APSResult.Algorithm.TSUNAMI
+        val (fromTime, toTime) = graphTimeRange() ?: run {
+            _tsunamiGraphFlow.value = TsunamiGraphData(isTsunamiAps = isTsunamiAps, windows = emptyList())
+            return
+        }
+        // Only Tsunami mode itself is drawn for now, other mode values are ignored
+        val windows = if (!isTsunamiAps) emptyList()
+        else persistenceLayer.getTsunamiFromTimeToTime(fromTime, toTime)
+            .filter { it.tsunamiMode == TSUNAMI_MODE_TSUNAMI }
+            .map { TsunamiWindow(startTime = it.timestamp, endTime = it.end) }
+        _tsunamiGraphFlow.value = TsunamiGraphData(isTsunamiAps = isTsunamiAps, windows = windows)
+    }
+
     private suspend fun rebuildRunningModeGraph() = runningModeRebuildMutex.withLock {
         val (fromTime, toTime) = graphTimeRange() ?: return
         val endTime = graphEndTime(toTime)
@@ -1225,6 +1264,7 @@ class OverviewDataCacheImpl(
         _basalGraphFlow.value = BasalGraphData(emptyList(), emptyList(), 0.0)
         _targetLineFlow.value = TargetLineData(emptyList())
         _runningModeGraphFlow.value = RunningModeGraphData(emptyList())
+        _tsunamiGraphFlow.value = TsunamiGraphData(isTsunamiAps = _tsunamiGraphFlow.value.isTsunamiAps, windows = emptyList())
         _nsClientStatusFlow.value = AapsClientStatusData()
         _calcProgressFlow.value = 100
     }
