@@ -160,9 +160,9 @@ class AppRepository internal constructor(
 
     suspend fun clearApsResults() = database.apsResultDao.deleteAllEntries()
 
-    suspend fun cleanupDatabase(keepDays: Long, deleteTrackedChanges: Boolean): String {
+    /** Delete records with a timestamp before [than] (epoch ms). */
+    suspend fun cleanupDatabase(than: Long, deleteTrackedChanges: Boolean): String {
         database.useWriterConnection { connection -> connection.usePrepared("PRAGMA optimize") { it.step() } }
-        val than = Clock.System.now().toEpochMilliseconds() - keepDays.days.inWholeMilliseconds
         val removed = mutableListOf<Pair<String, Int>>()
         removed.add(Pair("APSResult", database.apsResultDao.deleteOlderThan(than)))
         removed.add(Pair("GlucoseValue", database.glucoseValueDao.deleteOlderThan(than)))
@@ -377,6 +377,9 @@ class AppRepository internal constructor(
 
     suspend fun getTemporaryTargetActiveAt(timestamp: Long): TemporaryTarget? =
         database.temporaryTargetDao.getTemporaryTargetActiveAt(timestamp)
+
+    suspend fun getTemporaryTargetsActiveAt(timestamp: Long): List<TemporaryTarget> =
+        database.temporaryTargetDao.getTemporaryTargetsActiveAt(timestamp)
 
     suspend fun getLastTempTargetId(): Long? =
         database.temporaryTargetDao.getLastId()
@@ -786,8 +789,8 @@ class AppRepository internal constructor(
     suspend fun getTemporaryBasalActiveAt(timestamp: Long): TemporaryBasal? =
         database.temporaryBasalDao.getTemporaryBasalActiveAt(timestamp)
 
-    suspend fun getTemporaryBasalsActiveBetweenTimeAndTime(from: Long, to: Long): List<TemporaryBasal> =
-        database.temporaryBasalDao.getTemporaryBasalActiveBetweenTimeAndTime(from, to)
+    suspend fun getTemporaryBasalsActiveAt(timestamp: Long): List<TemporaryBasal> =
+        database.temporaryBasalDao.getTemporaryBasalsActiveAt(timestamp)
 
     suspend fun getTemporaryBasalsStartingFromTime(timestamp: Long, ascending: Boolean): List<TemporaryBasal> =
         database.temporaryBasalDao.getTemporaryBasalDataFromTime(timestamp).reversedIf(!ascending)
@@ -829,6 +832,9 @@ class AppRepository internal constructor(
 
     suspend fun getExtendedBolusActiveAt(timestamp: Long): ExtendedBolus? =
         database.extendedBolusDao.getExtendedBolusActiveAt(timestamp)
+
+    suspend fun getExtendedBolusesActiveAt(timestamp: Long): List<ExtendedBolus> =
+        database.extendedBolusDao.getExtendedBolusesActiveAt(timestamp)
 
     suspend fun getExtendedBolusesStartingFromTime(timestamp: Long, ascending: Boolean): List<ExtendedBolus> =
         database.extendedBolusDao.getExtendedBolusesStartingFromTime(timestamp).reversedIf(!ascending)

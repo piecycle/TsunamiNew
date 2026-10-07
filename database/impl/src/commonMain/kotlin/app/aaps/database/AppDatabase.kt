@@ -49,7 +49,7 @@ import app.aaps.database.entities.Tsunami
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.entities.VersionChange
 
-const val DATABASE_VERSION = 36
+const val DATABASE_VERSION = 37
 
 @Database(
     version = DATABASE_VERSION,

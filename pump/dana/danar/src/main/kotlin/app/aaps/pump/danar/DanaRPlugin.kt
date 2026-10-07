@@ -135,6 +135,9 @@ class DanaRPlugin(
         scope?.cancel()
         scope = null
         context.unbindService(mConnection)
+        // onServiceDisconnected is not called after unbindService, so drop the reference here.
+        // Otherwise the destroyed service stays alive after a pump switch or config change.
+        executionService = null
         super.onStop()
     }
 
@@ -167,6 +170,8 @@ class DanaRPlugin(
         val delivered = bolusProgressData.state.value?.delivered ?: PumpInsulin(0.0)
         result.success(resultOK && (abs(detailedBolusInfo.insulin - delivered.cU) < pumpDescription.bolusStep || danaPump.bolusStopped))
             .bolusDelivered(delivered.cU)
+        // Enacted = the pump really gave insulin. A stopped bolus can be a success with nothing given.
+        result.enacted(result.success && delivered.cU > 0)
         if (!result.success) result.comment(
             rh.gs(
                 app.aaps.pump.dana.R.string.boluserrorcode,
