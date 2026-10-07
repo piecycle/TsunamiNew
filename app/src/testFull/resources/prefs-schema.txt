@@ -265,10 +265,10 @@ key_use_wave_smbcap|BooleanKey|true
 key_usersuperbolus|BooleanKey|true
 key_wave_SMB_scaling|BooleanKey|true
 key_wave_activity_target|IntKey|true
-key_wave_end|DoubleKey|true
+key_wave_end_time|IntKey|true
 key_wave_insulinReqPCT|IntKey|true
 key_wave_smbcap|DoubleKey|true
-key_wave_start|DoubleKey|true
+key_wave_start_time|IntKey|true
 language|StringKey|true
 last_bolus_amount|MedtrumDoubleNonKey|true
 last_bolus_time|MedtrumLongNonKey|true
@@ -488,6 +488,7 @@ tidepool_service_configuration|TidepoolStringNonKey|true
 tidepool_subscription_id|TidepoolStringNonKey|true
 treatmentssafety_maxbolus|DoubleKey|true
 treatmentssafety_maxcarbs|IntKey|true
+tsunami_advanced_disclaimer|ApsIntentKey|false
 uamsmbmaxminutes|IntKey|true
 ukf_last_processed_timestamp|UkfLongNonKey|false
 ukf_last_saved_timestamp|UkfLongNonKey|true
@@ -507,6 +508,7 @@ virtual_pump_is_suspended|VirtualBooleanNonPreferenceKey|true
 virtual_pump_serial_number|VirtualStringNonPreferenceKey|true
 virtualpump_type|StringKey|true
 virtualpump_uploadstatus|BooleanKey|true
+wave_advanced_disclaimer|ApsIntentKey|false
 wear_broadcast_data|BooleanKey|true
 wear_custom_watchface_autorization|BooleanKey|true
 wear_cwf_author_version|StringNonKey|true
